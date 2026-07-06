@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>即時資訊看板</title>
+  <title>資訊看板</title>
   <style>
     /* 全域樣式設定：高對比、零邊距 */
     * {
@@ -108,15 +108,16 @@
     }
 
     /* ==========================================================================
-       右欄：時間與天氣樣式 (字體不小於 24px，極致緊湊)
+       右欄：時間與天氣樣式 (已調整為適合 7 吋平板的 80px)
        ========================================================================== */
     .time-display {
-      font-size: 80px;
+      font-size: 80px; /* 已修正：從120px改為適合7吋平板的80px */
       font-weight: 700;
       color: #ffffff;
       line-height: 1.0;
       margin-bottom: 2px;
       text-align: center;
+      letter-spacing: -1px;
     }
 
     .date-display {
@@ -276,7 +277,7 @@
     };
 
     // ==========================================================================
-    // 即時時鐘與日期更新 (12小時制 / 24小時制)
+    // 即時時鐘與日期更新
     // ==========================================================================
     function updateClock() {
       const now = new Date();
@@ -324,7 +325,6 @@
         htmlContent += `<div class="bus-eta-container">`;
 
         if (result.status === 'fulfilled' && result.value && result.value.data) {
-          // 過濾並取得前 3 班有效車次
           const etas = result.value.data
             .filter(item => item.eta)
             .slice(0, 3);
@@ -337,11 +337,9 @@
               const diffMs = etaTime - new Date();
               const diffMins = Math.max(0, Math.floor(diffMs / 60000));
               
-              // 格式化時間成 HH:mm
               const hh = String(etaTime.getHours()).padStart(2, '0');
               const mm = String(etaTime.getMinutes()).padStart(2, '0');
               
-              // 時間一律為白色，倒數少於 10 分鐘時為紅色
               const countdownClass = diffMins < 10 ? 'countdown-urgent' : 'countdown-normal';
               return `<span class="eta-item">${hh}:${mm}<span class="${countdownClass}">(${diffMins}分鐘)</span></span>`;
             });
@@ -364,7 +362,6 @@
       const urlWarn = 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc';
       const urlSwt = 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=swt&lang=tc';
 
-      // 同步併發請求所有天氣接口
       const [rhrRes, fndRes, warnRes, swtRes] = await Promise.allSettled([
         fetch(urlRhr).then(res => res.json()),
         fetch(urlFnd).then(res => res.json()),
@@ -372,21 +369,17 @@
         fetch(urlSwt).then(res => res.json())
       ]);
 
-      // 1. 解析現時溫度與濕度 (rhrread)
       if (rhrRes.status === 'fulfilled' && rhrRes.value) {
         const rhrData = rhrRes.value;
-        // 尋找青衣測量點的溫度
         if (rhrData.temperature && rhrData.temperature.data) {
           const tyTemp = rhrData.temperature.data.find(place => place.place === '青衣');
           if (tyTemp) {
             document.getElementById('current-temp').textContent = `${tyTemp.value}°C(青衣)`;
           }
         }
-        // 現時濕度
         if (rhrData.humidity && rhrData.humidity.data && rhrData.humidity.data[0]) {
           document.getElementById('current-humidity').textContent = `💧 ${rhrData.humidity.data[0].value}%`;
         }
-        // 深色透明背景天氣圖標
         if (rhrData.icon && rhrData.icon[0]) {
           const iconEl = document.getElementById('wx-icon');
           iconEl.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${rhrData.icon[0]}.png`;
@@ -394,7 +387,6 @@
         }
       }
 
-      // 2. 解析當日最高與最低溫度預測 (fnd)
       if (fndRes.status === 'fulfilled' && fndRes.value && fndRes.value.weatherForecast) {
         const todayForecast = fndRes.value.weatherForecast[0];
         if (todayForecast) {
@@ -403,19 +395,15 @@
         }
       }
 
-      // 3. 解析警告與特別提示 (warnsum & swt)
       const alertZone = document.getElementById('alert-zone');
       let warningHtml = '';
       let swtHtml = '';
 
-      // 解析警告摘要
       if (warnRes.status === 'fulfilled' && warnRes.value) {
         const warnData = warnRes.value;
-        // 尋找有效的警告項目並抽取其子類型
         Object.keys(warnData).forEach(key => {
           const alertItem = warnData[key];
           if (alertItem && alertItem.code) {
-            // 先比對特定子類型字典，若查無則沿用 API 回傳的中文名稱
             const text = WARNING_MAP[alertItem.code] || alertItem.name;
             if (text) {
               warningHtml += `<div class="warning-tag">${text}</div>`;
@@ -424,17 +412,14 @@
         });
       }
 
-      // 解析特別天氣提示
       if (swtRes.status === 'fulfilled' && swtRes.value && swtRes.value.swf) {
         const swfTips = swtRes.value.swf;
         if (swfTips.length > 0) {
           const combinedTips = swfTips.map(tip => tip.desc).join(' ');
-          // 建立提示容器架構
           swtHtml = `<div class="swt-container" id="marquee-box"><div class="swt-content" id="marquee-content">${combinedTips}</div></div>`;
         }
       }
 
-      // 智慧整合渲染：無標題，僅展示實質內容
       if (warningHtml || swtHtml) {
         let finalAlertContent = '';
         if (warningHtml) {
@@ -445,7 +430,6 @@
         }
         alertZone.innerHTML = finalAlertContent;
         
-        // 啟動智慧判斷：檢查文字行數是否超出3行，若超出則套用跑馬燈動畫
         setTimeout(() => {
           const box = document.getElementById('marquee-box');
           const content = document.getElementById('marquee-content');
@@ -455,7 +439,6 @@
         }, 100);
 
       } else {
-        // 沒有生效的警告與提示時，顯示較暗的灰色文字
         alertZone.innerHTML = `<div class="no-alerts">現時沒有生效的警告/提示</div>`;
       }
     }
@@ -468,10 +451,8 @@
       fetchBusData();
       fetchWeatherData().then(() => updateRefreshTime());
 
-      // 1秒時鐘核心
       setInterval(updateClock, 1000);
 
-      // 30秒資料自動更新核心
       setInterval(() => {
         Promise.all([fetchBusData(), fetchWeatherData()]).then(() => {
           updateRefreshTime();
