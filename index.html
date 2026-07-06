@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>實時資訊版</title>
+    <title>長者專用實時資訊版</title>
     <style>
         /* 全局重置與基本設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,7 +48,7 @@
         #right-col { width: 40%; height: 100%; overflow-y: auto; padding: 6px 12px; display: flex; flex-direction: column; align-items: center; }
         
         /* 時間與日期 */
-        #clock-time { font-size: 100px; font-weight: bold; margin: 10px 0 0 0; line-height: 1; text-align: center; }
+        #clock-time { font-size: 80px; font-weight: bold; margin: 10px 0 0 0; line-height: 1; text-align: center; }
         #clock-date { font-size: 26px; color: #ddd; margin-bottom: 12px; text-align: center; }
         
         .divider { width: 90%; height: 2px; background-color: #333; margin: 8px 0; }
@@ -64,10 +64,10 @@
 
         /* 警告與特別提示 */
         #warning-box { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 8px; }
-        .warn-badge { padding: 6px 12px; border-radius: 8px; font-size: 26px; font-weight: bold; text-align: center; width: 95%; border: 2px solid transparent; }
+        .warn-badge { padding: 6px 12px; border-radius: 8px; font-size: 30px; font-weight: bold; text-align: center; width: 95%; border: 2px solid transparent; }
         
         /* 提示跑馬燈 */
-        #swt-container { width: 100%; max-height: 110px; /* 大約3行高度 (32px * 1.1 * 3) */ overflow: hidden; position: relative; margin-top: 5px; }
+        #swt-container { width: 100%; max-height: 110px; overflow: hidden; position: relative; margin-top: 5px; }
         #swt-content { font-size: 30px; line-height: 1.2; padding: 0 5px; text-align: left; position: relative; width: 100%; }
         
         /* 跑馬燈動畫 */
@@ -124,12 +124,11 @@
         /* ================= 系統與時間設定 ================= */
         function updateClock() {
             const now = new Date();
-            // 12小時制時間，移除 AM/PM 原生字眼以節省空間，改用自訂
             let hours = now.getHours();
             const minutes = now.getMinutes().toString().padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
-            hours = hours ? hours : 12; // 0 轉為 12
+            hours = hours ? hours : 12; 
             
             document.getElementById('clock-time').innerHTML = `${hours}:${minutes} <span style="font-size:40px;">${ampm}</span>`;
             
@@ -166,7 +165,6 @@
                     const res = await fetch(bus.url);
                     const data = await res.json();
                     
-                    // 過濾掉沒有 eta 的資料，並限制最多 3 班車
                     let validEtas = (data.data || []).filter(item => item.eta !== null).slice(0, 3);
                     
                     let etaHtml = '';
@@ -175,11 +173,9 @@
                         const etaStrings = validEtas.map((item, index) => {
                             const etaTime = new Date(item.eta);
                             let diffMins = Math.floor((etaTime - now) / 60000);
-                            if (diffMins < 0) diffMins = 0; // 避免出現負數
+                            if (diffMins < 0) diffMins = 0; 
 
                             const timeStr = etaTime.toLocaleTimeString('zh-HK', { hour12: false, hour: '2-digit', minute: '2-digit' });
-                            
-                            // 少於10分鐘倒數變紅
                             const minClass = diffMins < 10 ? 'red' : '';
                             return `<span class="eta-time">${timeStr}</span>(<span class="eta-min ${minClass}">${diffMins}分鐘</span>)`;
                         });
@@ -205,25 +201,37 @@
         }
 
         /* ================= 天氣資料設定與抓取 ================= */
+        // 天氣警告樣式與文字映射表 (涵蓋子類型)
         const warnConfig = {
-            'WFIREY': { bg: '#FFB300', color: '#000', text: '黃色火災危險' },
-            'WFIRER': { bg: '#E53935', color: '#FFF', text: '紅色火災危險' },
-            'WRAINA': { bg: '#FFB300', color: '#000', text: '黃色暴雨警告' },
-            'WRAINR': { bg: '#E53935', color: '#FFF', text: '紅色暴雨警告' },
-            'WRAINB': { bg: '#000', color: '#FFF', border: '#FFF', text: '黑色暴雨警告' },
-            'TC1': { bg: '#555', color: '#FFF', text: '一號戒備信號' },
-            'TC3': { bg: '#555', color: '#FFF', text: '三號強風信號' },
-            'TC8NE': { bg: '#555', color: '#FFF', text: '八號東北烈風或暴風' },
-            'TC8SE': { bg: '#555', color: '#FFF', text: '八號東南烈風或暴風' },
-            'TC8SW': { bg: '#555', color: '#FFF', text: '八號西南烈風或暴風' },
-            'TC8NW': { bg: '#555', color: '#FFF', text: '八號西北烈風或暴風' },
-            'TC9': { bg: '#555', color: '#FFF', text: '九號烈風或暴風增強' },
-            'TC10': { bg: '#555', color: '#FFF', text: '十號颶風信號' }
+            // 火災危險
+            'WFIREY': { bg: '#FFB300', color: '#000', text: '黃色火災危險警告' },
+            'WFIRER': { bg: '#E53935', color: '#FFF', text: '紅色火災危險警告' },
+            // 暴雨警告
+            'WRAINA': { bg: '#FFCC00', color: '#000', text: '黃色暴雨警告信號' },
+            'WRAINR': { bg: '#E53935', color: '#FFF', text: '紅色暴雨警告信號' },
+            'WRAINB': { bg: '#000000', color: '#FFF', border: '#FFF', text: '黑色暴雨警告信號' },
+            // 熱帶氣旋 (颱風)
+            'TC1': { bg: '#424242', color: '#FFF', text: '一號戒備信號' },
+            'TC3': { bg: '#424242', color: '#FFF', text: '三號強風信號' },
+            'TC8NE': { bg: '#E53935', color: '#FFF', text: '八號東北烈風或暴風信號' },
+            'TC8SE': { bg: '#E53935', color: '#FFF', text: '八號東南烈風或暴風信號' },
+            'TC8SW': { bg: '#E53935', color: '#FFF', text: '八號西南烈風或暴風信號' },
+            'TC8NW': { bg: '#E53935', color: '#FFF', text: '八號西北烈風或暴風信號' },
+            'TC9': { bg: '#000000', color: '#FFF', border: '#FFCC00', text: '九號烈風或暴風增強信號' },
+            'TC10': { bg: '#000000', color: '#FFF', border: '#E53935', text: '十號颶風信號' },
+            // 其他常規型警告 (直接補齊)
+            'WTS': { bg: '#263238', color: '#FFEB3B', text: '雷暴警告' },
+            'WHOT': { bg: '#FF5722', color: '#FFF', text: '酷熱天氣警告' },
+            'WCOLD': { bg: '#2196F3', color: '#FFF', text: '寒冷天氣警告' },
+            'WMSGNL': { bg: '#5D4037', color: '#FFF', text: '強烈季候風信號' },
+            'WL': { bg: '#795548', color: '#FFF', text: '山泥傾瀉警告' },
+            'WFROST': { bg: '#00BCD4', color: '#000', text: '霜凍警告' },
+            'WFNTSA': { bg: '#0288D1', color: '#FFF', text: '新界北部水浸特別報告' },
+            'WTMW': { bg: '#673AB7', color: '#FFF', text: '海嘯警告' }
         };
 
         async function fetchWeatherData() {
             try {
-                // 並發抓取四個天文台 API
                 const [rhrreadRes, fndRes, warnRes, swtRes] = await Promise.all([
                     fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc'),
                     fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc'),
@@ -246,7 +254,6 @@
                 }
                 if (rhrread.icon && rhrread.icon[0]) {
                     const iconImg = document.getElementById('weather-icon');
-                    // 呼叫透明線條版圖標 (適合深色背景)
                     iconImg.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${rhrread.icon[0]}.png`;
                     iconImg.style.display = 'block';
                 }
@@ -257,23 +264,42 @@
                     document.getElementById('min-temp').innerText = `${fnd.weatherForecast[0].forecastMintemp.value}°C`;
                 }
 
-                // 3. 天氣警告
+                // 3. 天氣警告 (修正數據解析結構路徑)
                 const warnBox = document.getElementById('warning-box');
-                warnBox.innerHTML = ''; // 清空
+                warnBox.innerHTML = ''; 
                 let hasWarning = false;
                 
-                if (Object.keys(warn).length > 0) {
-                    for (const key in warn) {
-                        const code = warn[key].code;
-                        if (code === 'CANCEL') continue;
-                        
-                        const config = warnConfig[code];
-                        if (config) {
-                            hasWarning = true;
-                            const borderStyle = config.border ? `border-color: ${config.border};` : '';
-                            warnBox.innerHTML += `<div class="warn-badge" style="background-color:${config.bg}; color:${config.color}; ${borderStyle}">${config.text}</div>`;
-                        }
+                // 修正點：必須讀取物件底下的 .warnsum
+                const warnList = warn.warnsum || {};
+
+                for (const key in warnList) {
+                    const item = warnList[key];
+                    
+                    // 修正點：如果行動代號是 CANCEL，代表該警告已取消，跳過不顯示
+                    if (item.actionCode === 'CANCEL') continue;
+                    
+                    const code = item.code;
+                    const config = warnConfig[code];
+                    hasWarning = true;
+                    
+                    // 預設兜底樣式（若未來天文台新增代號，仍能正常顯示其原生中文名稱）
+                    let bg = '#555';
+                    let color = '#fff';
+                    let text = item.name; 
+                    let borderStyle = '';
+                    
+                    if (config) {
+                        bg = config.bg;
+                        color = config.color;
+                        text = config.text;
+                        if (config.border) borderStyle = `border-color: ${config.border};`;
                     }
+                    
+                    warnBox.innerHTML += `<div class="warn-badge" style="background-color:${bg}; color:${color}; ${borderStyle}">${text}</div>`;
+                }
+
+                if (!hasWarning) {
+                    warnBox.innerHTML = '<div style="color: #666; font-size: 24px; text-align: center; margin-top: 5px;">現時沒有生效的警告</div>';
                 }
 
                 // 4. 特別天氣提示
@@ -285,13 +311,10 @@
                     tipsHtml = swt.swt.map(t => t.desc).join('<br><br>');
                 }
 
-                // 如果完全沒有警告也沒有提示
-                if (!hasWarning && !tipsHtml) {
-                    warnBox.innerHTML = '<div class="no-warning">現時沒有生效的警告/提示</div>';
-                    swtContent.innerHTML = '';
+                if (!tipsHtml) {
+                    swtContent.innerHTML = '<div style="color: #666; font-size: 24px; text-align: center; margin-top: 5px;">現時沒有特別天氣提示</div>';
                 } else {
                     swtContent.innerHTML = tipsHtml;
-                    // 判斷是否超過 3 行高度 (110px)，若超過則加入跑馬燈特效
                     setTimeout(() => {
                         if (swtContent.offsetHeight > 110) {
                             swtContent.classList.add('marquee-anim');
@@ -312,11 +335,8 @@
             updateLastRefresh();
         }
 
-        // 啟動首次載入
         refreshAllData();
-        
-        // 設定每 30 秒更新一次
-        setInterval(refreshAllData, 30000);
+        setInterval(refreshAllData, 30000); // 每 30 秒背景更新
 
     </script>
 </body>
