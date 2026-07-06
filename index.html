@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>實時資訊網頁</title>
+    <title>資訊網頁</title>
     <style>
         /* 基礎設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -116,20 +116,21 @@
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
 
-        /* 警告圖標區域 */
+        /* 警告與提示圖標區 (採用維基百科圖標) */
         #warnings-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            min-height: 52px; /* 預留圖標空間 */
+            gap: 10px;
+            min-height: 54px; /* 確保沒有警告時也有固定排版空間 */
             align-items: center;
+            margin-top: 4px;
         }
         .warning-icon {
-            height: 52px; /* 適合長者觀賞的圖標高度 */
+            height: 52px; /* 放大圖標，方便長者觀看 */
             width: auto;
             object-fit: contain;
         }
-        /* 極端備用文字樣式 (當所有網路圖片皆無法讀取時) */
+        /* 極少數情況未對應到的文字備案 */
         .warning-text-fallback {
             background-color: #FF3B30;
             color: #FFFFFF;
@@ -147,7 +148,7 @@
         #swt-container {
             font-size: 24px;
             line-height: 1.3;
-            max-height: 3.9em;
+            max-height: 3.9em; /* 約3行高度 */
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -194,7 +195,7 @@
     <script>
         // --- 1. 配置區域 ---
 
-        // 巴士路線與站點設定
+        // 巴士設定
         const busConfigs = [
             { id: "249X", color: "#007AFF", dest: "博康", stop: "青桃樓", url: "https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1" },
             { id: "42A", color: "#34C759", dest: "西九龍", stop: "青桃樓", url: "https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1" },
@@ -205,7 +206,7 @@
             { id: "243M", color: "#A2845E", dest: "荃灣", stop: "美景花園", url: "https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1" }
         ];
 
-        // 天氣警告代號對應的中文名稱
+        // 天氣警告子類型名稱對照
         const warningNames = {
             "WFIREY": "黃色火災危險警告", "WFIRER": "紅色火災危險警告",
             "WRAINA": "黃色暴雨警告信號", "WRAINR": "紅色暴雨警告信號", "WRAINB": "黑色暴雨警告信號",
@@ -218,76 +219,39 @@
             "WFROST": "霜凍警告"
         };
 
-        // 天氣警告圖標可能的主檔名映射（涵蓋所有天文台新舊命名習慣）
-        const warningIconFileNames = {
-            "WFIREY": ["wfirey", "firey"],
-            "WFIRER": ["wfirer", "firer"],
-            "WRAINA": ["wraina", "raina"],
-            "WRAINR": ["wrainr", "rainr"],
-            "WRAINB": ["wrainb", "rainb"],
-            "TC1": ["tc1"], "TC3": ["tc3"], 
-            "TC8NE": ["tc8ne"], "TC8SE": ["tc8se"], "TC8SW": ["tc8sw"], "TC8NW": ["tc8nw"], 
-            "TC9": ["tc9"], "TC10": ["tc10"], 
-            "WTS": ["wts", "ts"],
-            "WHOT": ["whot", "vhot"],
-            "WCOLD": ["wcold", "cold"],
-            "WL": ["wl", "landslip"],
-            "WTMW": ["wtmw", "tsunami"],
-            "WMSGNL": ["wmsgnl", "sms"],
-            "WFROST": ["wfrost", "frost"]
+        // 維基百科 (Wikimedia Commons) 香港天文台官方警告圖標檔名 mapping
+        const warningWikiFiles = {
+            "WFIREY": "Yellow_Fire_Danger_Warning.png",
+            "WFIRER": "Red_Fire_Danger_Warning.png",
+            "WRAINA": "HKO_Amber_Rainstorm_Warning.svg",
+            "WRAINR": "HKO_Red_Rainstorm_Warning.svg",
+            "WRAINB": "HKO_Black_Rainstorm_Warning.svg",
+            "TC1": "No._1_Standby_Signal.png",
+            "TC3": "No._3_Strong_Wind_Signal.png",
+            "TC8NE": "No._8_Northeast_Gale_or_Storm_Signal.png",
+            "TC8SE": "No._8_Southeast_Gale_or_Storm_Signal.png",
+            "TC8SW": "No._8_Southwest_Gale_or_Storm_Signal.png",
+            "TC8NW": "No._8_Northwest_Gale_or_Storm_Signal.png",
+            "TC9": "No._9_Increasing_Gale_or_Storm_Signal.png",
+            "TC10": "No._10_Hurricane_Signal.png",
+            "WTS": "Thunderstorm_Warning.png",
+            "WHOT": "Very_Hot_Weather_Warning.png",
+            "WCOLD": "Cold_Weather_Warning.png",
+            "WL": "Landslip_Warning.png",
+            "WTMW": "Tsunami_Warning.png",
+            "WMSGNL": "Strong_Monsoon_Signal.png",
+            "WFROST": "Frost_Warning.png"
         };
 
 
-        // --- 2. 警告圖標自動偵測與加載引擎 ---
-        function getWarningIconHtml(code, name) {
-            const altText = warningNames[code] || name || "天氣警告";
-            const possibleNames = warningIconNames[code] || [code.toLowerCase()];
-            
-            const candidateUrls = [];
-            // 自動生成覆蓋新舊目錄、gif 與 png 的 8 組網址
-            possibleNames.forEach(imgName => {
-                candidateUrls.push(`https://www.hko.gov.hk/tc/wxinfo/warning/images/${imgName}.gif`);
-                candidateUrls.push(`https://www.hko.gov.hk/tc/wxinfo/warning/images/${imgName}.png`);
-                candidateUrls.push(`https://www.hko.gov.hk/images/wxicon/warn/${imgName}.gif`);
-                candidateUrls.push(`https://www.hko.gov.hk/images/wxicon/warn/${imgName}.png`);
-            });
-            
-            const urlsJson = JSON.stringify(candidateUrls).replace(/"/g, '&quot;');
-            
-            // 建立帶有自動重試鏈 (handleIconError) 的 HTML 圖片標籤
-            return `<img src="${candidateUrls[0]}" alt="${altText}" class="warning-icon" 
-                     data-urls="${urlsJson}" data-index="0" 
-                     onerror="handleIconError(this, '${altText}')">`;
-        }
-
-        // 當單個網址失效時，無縫嘗試下一個備用網址
-        function handleIconError(img, altText) {
-            const urls = JSON.parse(img.getAttribute('data-urls'));
-            let index = parseInt(img.getAttribute('data-index'), 10) + 1;
-            
-            if (index < urls.length) {
-                img.setAttribute('data-index', index);
-                img.src = urls[index]; // 嘗試下一個 URL
-            } else {
-                // 如果所有圖片 URL 皆無法讀取（例如無網路環境），優雅降級為文字標籤
-                const fallbackDiv = document.createElement('div');
-                fallbackDiv.className = 'warning-text-fallback';
-                fallbackDiv.textContent = altText;
-                if (img.parentNode) {
-                    img.parentNode.replaceChild(fallbackDiv, img);
-                }
-            }
-        }
-
-
-        // --- 3. 時鐘與日期邏輯 ---
+        // --- 2. 時鐘與日期邏輯 ---
         function updateClock() {
             const now = new Date();
             
             // 右欄大時鐘 (12小時制)
             let hh = now.getHours();
             hh = hh % 12;
-            hh = hh ? hh : 12; // 將 0 轉換為 12
+            hh = hh ? hh : 12; // 轉換 0 為 12
             hh = String(hh).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('time-display').textContent = `${hh}:${mm}`;
@@ -304,7 +268,7 @@
         updateClock();
 
 
-        // --- 4. 數據抓取與渲染 ---
+        // --- 3. 數據抓取與渲染 ---
 
         // 格式化到站時間 HTML
         function formatBusETA(etaString) {
@@ -319,7 +283,6 @@
             const mm = String(etaTime.getMinutes()).padStart(2, '0');
             const timeStr = `${hh}:${mm}`;
 
-            // <10分鐘到達為白色，倒數為紅色；>=10分鐘全白
             if (diffMins < 10) {
                 return `<span class="time-white">${timeStr}</span>(<span class="time-red">${diffMins}分鐘</span>)`;
             } else {
@@ -341,7 +304,7 @@
                             .filter(eta => eta != null)
                             .map(eta => formatBusETA(eta))
                             .filter(eta => eta != null)
-                            .slice(0, 3); // 取得最近 3 班
+                            .slice(0, 3); // 拿最近3班
 
                         if (validETAs.length > 0) {
                             etasHtml = validETAs.join(' | ');
@@ -397,32 +360,40 @@
                 let maxTemp = forecastData.weatherForecast[0].forecastMaxtemp.value;
                 let minTemp = forecastData.weatherForecast[0].forecastMintemp.value;
 
-                // 拆分顯示：第一行 (圖標、現時溫度、濕度)
+                // 第一行：圖標、現時溫度、濕度
                 document.getElementById('weather-current-data').innerHTML = `
                     <img id="weather-icon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png" alt="天氣圖標">
                     <span>${currentTemp}°C(青衣)</span>
                     <span>💧${humidity}%</span>
                 `;
                 
-                // 拆分顯示：第二行 (最低、最高溫度)
+                // 第二行：極端溫度
                 document.getElementById('weather-minmax-data').innerHTML = `
                     <span class="temp-blue">❄️${minTemp}°C</span>
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告 (強烈使用圖標與子類型)
+                // 2. 處理天氣警告圖標 (調用維基百科 API Special:FilePath 抓取，免除防盜鏈)
                 let warningsHtml = '';
                 let hasAlerts = false;
                 
                 if (Object.keys(warningData).length > 0) {
                     for (const key in warningData) {
                         const warn = warningData[key];
-                        // 優先使用 warn.code (如 WRAINA, TC3)，若無則使用 key
-                        const code = warn.code || key; 
+                        const code = warn.code; 
                         
-                        if (code && code !== "CANCEL" && warn.actionCode !== "CANCEL") {
-                            warningsHtml += getWarningIconHtml(code, warn.name);
-                            hasAlerts = true;
+                        if (code !== "CANCEL") { // 略過取消信號
+                            if (code && warningWikiFiles[code]) {
+                                // 使用維基共享資源官方直接導向網址
+                                const wikiUrl = `https://commons.wikimedia.org/wiki/Special:FilePath/${warningWikiFiles[code]}`;
+                                const altText = warningNames[code] || warn.name;
+                                warningsHtml += `<img src="${wikiUrl}" alt="${altText}" title="${altText}" class="warning-icon" onerror="this.outerHTML='<div class=\\'warning-text-fallback\\'>${altText}</div>'">`;
+                                hasAlerts = true;
+                            } else if (code) { 
+                                // 若有全新未紀錄的警告，以紅色文字牌顯示
+                                warningsHtml += `<div class="warning-text-fallback">${warn.name}</div>`;
+                                hasAlerts = true;
+                            }
                         }
                     }
                 }
@@ -443,12 +414,15 @@
                     swtContainerText.innerHTML = '';
                     swtContainerText.classList.remove('marquee-up');
                 } else {
-                    // 渲染警告圖標
-                    warningsContainer.innerHTML = warningsHtml;
-                    // 渲染特別天氣提示文字
+                    if (warningsHtml !== '') {
+                        warningsContainer.innerHTML = warningsHtml;
+                    } else {
+                        warningsContainer.innerHTML = '';
+                    }
+                    
                     swtContainerText.innerHTML = swtText;
                     
-                    // 判斷是否需要跑馬燈 (當文字超出容器 3 行高度時啟動)
+                    // 判斷是否需要啟動跑馬燈
                     setTimeout(() => {
                         if (swtContainerText.scrollHeight > swtContainerBox.clientHeight) {
                             swtContainerText.classList.add('marquee-up');
@@ -463,7 +437,7 @@
             }
         }
 
-        // --- 5. 初始化與自動刷新 ---
+        // --- 4. 初始化與自動刷新 ---
         async function updateDashboard() {
             await fetchBuses();
             await fetchWeather();
@@ -478,7 +452,7 @@
 
         // 首次加載
         updateDashboard();
-        // 設定每 30 秒異步更新
+        // 設定每 30 秒更新
         setInterval(updateDashboard, 30000);
 
     </script>
