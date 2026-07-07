@@ -38,7 +38,7 @@
             overflow: hidden;
         }
 
-        /* 左欄：巴士資訊 (改為 50%) */
+        /* 左欄：巴士資訊 (50%) */
         #left-col {
             width: 50%;
             border-right: 1px solid #333333;
@@ -75,7 +75,7 @@
         .time-red { color: #FF3B30; }
         .time-white { color: #FFFFFF; }
 
-        /* 右欄：時間與天氣 (改為 50%) 極致緊湊 */
+        /* 右欄：時間與天氣 (50%) 極致緊湊 */
         #right-col {
             width: 50%;
             padding: 10px;
@@ -132,19 +132,26 @@
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
 
-        /* 警告與提示區塊 */
+        /* 警告與提示區塊 (已移除底色與邊框，純圖標與文字) */
         #warnings-container {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column; /* 縱向排列更整齊 */
             gap: 6px;
+            margin: 2px 0;
         }
         .warning-badge {
-            background-color: #FF3B30;
             color: #FFFFFF;
-            border-radius: 8px;
-            padding: 4px 10px;
             font-size: 30px;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px; /* 圖標與文字間距 */
+            padding: 2px 0;
+        }
+        .warning-icon {
+            height: 46px; /* 圖標放大至與天氣圖標相同，視覺更平衡 */
+            width: auto;
+            flex-shrink: 0;
         }
         .no-warning {
             color: #8E8E93;
@@ -178,12 +185,12 @@
     <div id="top-bar">最後更新：--:--:--（每30秒自動刷新）</div>
 
     <div id="main-container">
-        <!-- 左欄：巴士 -->
+        <!-- 左欄：巴士 (50%) -->
         <div id="left-col" class="scrollable">
             <div id="bus-list">正在載入巴士資訊...</div>
         </div>
 
-        <!-- 右欄：時間與天氣 -->
+        <!-- 右欄：時間與天氣 (50%) -->
         <div id="right-col" class="scrollable">
             <!-- 12小時制時間顯示 -->
             <div id="time-display">--:--</div>
@@ -195,7 +202,7 @@
                 <div id="weather-row-2" class="weather-row"></div>
             </div>
 
-            <!-- 天氣警告區塊 -->
+            <!-- 天氣警告區塊 (純官方彩色圖標+文字，無外框底色) -->
             <div id="warnings-container"></div>
             
             <!-- 特別天氣提示區塊 (支援 6 行跑馬燈) -->
@@ -360,7 +367,7 @@
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告
+                // 2. 處理天氣警告 (純官方圖標+文字，無背景框)
                 let warningsHtml = '';
                 let hasWarnings = false;
                 
@@ -369,10 +376,15 @@
                         const warn = warningData[key];
                         const code = warn.code;
                         if (code && warningSubTypes[code]) {
-                            warningsHtml += `<div class="warning-badge">${warningSubTypes[code]}</div>`;
+                            const iconUrl = `https://www.hko.gov.hk/tc/wxinfo/currwx/images/${code.toLowerCase()}.png`;
+                            warningsHtml += `
+                                <div class="warning-badge">
+                                    <img src="${iconUrl}" class="warning-icon" alt="${warningSubTypes[code]}" onerror="this.style.display='none'">
+                                    <span>${warningSubTypes[code]}</span>
+                                </div>`;
                             hasWarnings = true;
                         } else if (code) {
-                            warningsHtml += `<div class="warning-badge">${warn.name}</div>`;
+                            warningsHtml += `<div class="warning-badge"><span>${warn.name}</span></div>`;
                             hasWarnings = true;
                         }
                     }
