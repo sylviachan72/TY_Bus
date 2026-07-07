@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>1416資訊網頁</title>
+    <title>資訊網頁</title>
     <style>
         /* 基礎設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -75,7 +75,7 @@
         .time-red { color: #FF3B30; }
         .time-white { color: #FFFFFF; }
 
-        /* 右欄：時間與天氣 (40%) 極致緊湊 */
+        /* 右欄：時間與天氣 (40%) 極致緊湊 + 字體放大 */
         #right-col {
             width: 40%;
             padding: 10px;
@@ -84,9 +84,9 @@
             gap: 8px; /* 區塊之間的緊湊間距 */
         }
 
-        /* 時間日期 (12小時制設計) */
+        /* 時間日期 (12小時制設計 - 字體加大) */
         #time-display {
-            font-size: 96px;
+            font-size: 100px; /* 已加大 */
             font-weight: bold;
             line-height: 1;
             display: flex;
@@ -95,19 +95,19 @@
             margin-top: 5px;
         }
         .ampm-label {
-            font-size: 36px;
+            font-size: 40px; /* 已加大 */
             font-weight: normal;
             color: #E5E5EA;
             margin-right: 10px;
         }
         #date-display {
-            font-size: 28px;
+            font-size: 34px; /* 已加大 */
             text-align: center;
             line-height: 1.1;
             margin-bottom: 2px;
         }
 
-        /* 天氣整合區塊：強制兩行、置中、零縫隙 */
+        /* 天氣整合區塊：強制兩行、置中、零縫隙 - 字體加大 */
         #weather-box {
             display: flex;
             flex-direction: column;
@@ -122,17 +122,17 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            font-size: 26px;
+            font-size: 32px; /* 已加大 */
             line-height: 1.1;
         }
         #weather-row-2 {
             margin-top: -2px; /* 消除文字預設字距空白，做到真正視覺零縫隙 */
         }
-        #weather-icon { height: 38px; vertical-align: middle; }
+        #weather-icon { height: 46px; vertical-align: middle; } /* 配合字體同步放大 */
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
 
-        /* 警告與提示區塊 */
+        /* 警告與提示區塊 - 字體加大 */
         #warnings-container {
             display: flex;
             flex-wrap: wrap;
@@ -143,20 +143,20 @@
             color: #FFFFFF;
             border-radius: 8px;
             padding: 4px 10px;
-            font-size: 24px;
+            font-size: 30px; /* 已加大 */
             font-weight: bold;
         }
         .no-warning {
             color: #8E8E93;
-            font-size: 24px;
+            font-size: 30px; /* 已加大 */
             line-height: 1.2;
         }
 
-        /* 特別天氣提示跑馬燈 (最多3行高度) */
+        /* 特別天氣提示跑馬燈 (修改為最多 6 行高度) - 字體加大 */
         #swt-container {
-            font-size: 24px;
+            font-size: 30px; /* 已加大 */
             line-height: 1.3;
-            max-height: 3.9em; /* 約3行高度 */
+            max-height: 7.8em; /* 1.3行高 * 6行 = 7.8em 高度 */
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -166,7 +166,7 @@
         }
         /* JS 會動態加入此 class 以啟動跑馬燈 */
         .marquee-up {
-            animation: scrollUp 15s linear infinite;
+            animation: scrollUp 18s linear infinite; /* 稍微減緩速度，方便閱讀6行長文 */
         }
         @keyframes scrollUp {
             0% { top: 100%; }
@@ -179,21 +179,27 @@
     <div id="top-bar">最後更新：--:--:--（每30秒自動刷新）</div>
 
     <div id="main-container">
+        <!-- 左欄：巴士 -->
         <div id="left-col" class="scrollable">
             <div id="bus-list">正在載入巴士資訊...</div>
         </div>
 
+        <!-- 右欄：時間與天氣 -->
         <div id="right-col" class="scrollable">
+            <!-- 12小時制時間顯示 -->
             <div id="time-display">--:--</div>
             <div id="date-display">----年--月--日 星期-</div>
             
+            <!-- 天氣區塊：分兩行、置中、零縫隙 -->
             <div id="weather-box">
                 <div id="weather-row-1" class="weather-row">載入天氣中...</div>
                 <div id="weather-row-2" class="weather-row"></div>
             </div>
 
+            <!-- 天氣警告區塊 -->
             <div id="warnings-container"></div>
             
+            <!-- 特別天氣提示區塊 (支援 6 行跑馬燈) -->
             <div id="swt-container">
                 <div id="swt-text" class="swt-text"></div>
             </div>
@@ -229,7 +235,7 @@
         };
 
 
-        // --- 2. 時鐘與日期邏輯 (已修正為 12 小時制) ---
+        // --- 2. 時鐘與日期邏輯 (12 小時制) ---
         function updateClock() {
             const now = new Date();
             
@@ -346,7 +352,7 @@
                 let maxTemp = forecastData.weatherForecast[0].forecastMaxtemp.value;
                 let minTemp = forecastData.weatherForecast[0].forecastMintemp.value;
 
-                // 第一行：圖標、現時溫度、現時濕度
+                // 第一行：圖擺、現時溫度、現時濕度
                 document.getElementById('weather-row-1').innerHTML = `
                     <img id="weather-icon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png" alt="天氣圖標">
                     <span>${currentTemp}°C(青衣)</span>
@@ -399,7 +405,7 @@
                     swtContainerText.classList.remove('marquee-up');
                 } else {
                     swtContainerText.innerHTML = swtText;
-                    // 判斷是否需要跑馬燈 (如果內容高度大於容器高度)
+                    // 判斷是否需要跑馬燈 (如果內容高度大於 6 行的容器高度)
                     setTimeout(() => {
                         if (swtContainerText.scrollHeight > swtContainerBox.clientHeight) {
                             swtContainerText.classList.add('marquee-up');
