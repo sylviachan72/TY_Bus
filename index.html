@@ -81,7 +81,7 @@
             padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 8px; /* 區塊之間的緊湊間距 */
+            gap: 8px;
         }
 
         /* 時間日期 (12小時制設計) */
@@ -113,7 +113,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0; /* 零縫隙貼合 */
+            gap: 0;
             margin: 2px 0;
         }
         .weather-row {
@@ -126,44 +126,45 @@
             line-height: 1.1;
         }
         #weather-row-2 {
-            margin-top: -2px; /* 消除文字預設字距空白 */
+            margin-top: -2px;
         }
         #weather-icon { height: 46px; vertical-align: middle; }
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
 
-        /* 警告與提示區塊 (已移除底色與邊框，純圖標與文字) */
+        /* 警告區塊：改為純圖標、大幅放大、橫向置中 */
         #warnings-container {
             display: flex;
-            flex-direction: column; /* 縱向排列更整齊 */
-            gap: 6px;
-            margin: 2px 0;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px; /* 圖標之間的間距 */
+            margin: 10px 0;
+            min-height: 65px; /* 預留高度避免畫面跳動 */
         }
-        .warning-badge {
+        .warning-icon {
+            height: 65px; /* 大幅放大圖標，極致清晰 */
+            width: auto;
+            object-fit: contain;
+        }
+        .warning-text-fallback {
             color: #FFFFFF;
             font-size: 30px;
             font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 12px; /* 圖標與文字間距 */
-            padding: 2px 0;
-        }
-        .warning-icon {
-            height: 46px; /* 圖標放大至與天氣圖標相同，視覺更平衡 */
-            width: auto;
-            flex-shrink: 0;
         }
         .no-warning {
             color: #8E8E93;
             font-size: 30px;
             line-height: 1.2;
+            text-align: center;
         }
 
-        /* 特別天氣提示跑馬燈 (最多 6 行高度) */
+        /* 特別天氣提示跑馬燈 */
         #swt-container {
             font-size: 30px;
             line-height: 1.3;
-            max-height: 7.8em; /* 1.3行高 * 6行 = 7.8em 高度 */
+            max-height: 7.8em;
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -196,16 +197,16 @@
             <div id="time-display">--:--</div>
             <div id="date-display">----年--月--日 星期-</div>
             
-            <!-- 天氣區塊：分兩行、置中、零縫隙 -->
+            <!-- 天氣區塊 -->
             <div id="weather-box">
                 <div id="weather-row-1" class="weather-row">載入天氣中...</div>
                 <div id="weather-row-2" class="weather-row"></div>
             </div>
 
-            <!-- 天氣警告區塊 (純官方彩色圖標+文字，無外框底色) -->
+            <!-- 天氣警告區塊 (純官方彩色圖標，橫向排列) -->
             <div id="warnings-container"></div>
             
-            <!-- 特別天氣提示區塊 (支援 6 行跑馬燈) -->
+            <!-- 特別天氣提示區塊 -->
             <div id="swt-container">
                 <div id="swt-text" class="swt-text"></div>
             </div>
@@ -226,7 +227,7 @@
             { id: "243M", color: "#A2845E", dest: "荃灣", stop: "美景花園", url: "https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1" }
         ];
 
-        // 天氣警告子類型對照表
+        // 天氣警告子類型對照表 (用於圖標 alt 屬性)
         const warningSubTypes = {
             "WFIREY": "黃色火災危險警告", "WFIRER": "紅色火災危險警告",
             "WRAINA": "黃色暴雨警告信號", "WRAINR": "紅色暴雨警告信號", "WRAINB": "黑色暴雨警告信號",
@@ -367,7 +368,7 @@
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告 (純官方圖標+文字，無背景框)
+                // 2. 處理天氣警告 (純圖標)
                 let warningsHtml = '';
                 let hasWarnings = false;
                 
@@ -376,15 +377,13 @@
                         const warn = warningData[key];
                         const code = warn.code;
                         if (code && warningSubTypes[code]) {
+                            // 獲取天文台官方圖標
                             const iconUrl = `https://www.hko.gov.hk/tc/wxinfo/currwx/images/${code.toLowerCase()}.png`;
-                            warningsHtml += `
-                                <div class="warning-badge">
-                                    <img src="${iconUrl}" class="warning-icon" alt="${warningSubTypes[code]}" onerror="this.style.display='none'">
-                                    <span>${warningSubTypes[code]}</span>
-                                </div>`;
+                            warningsHtml += `<img src="${iconUrl}" class="warning-icon" alt="${warningSubTypes[code]}" title="${warningSubTypes[code]}" onerror="this.style.display='none'">`;
                             hasWarnings = true;
                         } else if (code) {
-                            warningsHtml += `<div class="warning-badge"><span>${warn.name}</span></div>`;
+                            // 防呆機制：如果沒有對應的圖標，則回退顯示文字
+                            warningsHtml += `<span class="warning-text-fallback">${warn.name}</span>`;
                             hasWarnings = true;
                         }
                     }
