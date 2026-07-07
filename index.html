@@ -38,9 +38,9 @@
             overflow: hidden;
         }
 
-        /* 左欄：巴士資訊 (60%) */
+        /* 左欄：巴士資訊 (改為 55%) */
         #left-col {
-            width: 60%;
+            width: 55%;
             border-right: 1px solid #333333;
             padding: 10px 15px;
         }
@@ -75,18 +75,18 @@
         .time-red { color: #FF3B30; }
         .time-white { color: #FFFFFF; }
 
-        /* 右欄：時間與天氣 (40%) 極致緊湊 + 字體放大 */
+        /* 右欄：時間與天氣 (改為 45%) 極致緊湊 */
         #right-col {
-            width: 40%;
+            width: 45%;
             padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 8px; /* 區塊之間的緊湊間距 */
         }
 
-        /* 時間日期 (12小時制設計 - 字體加大) */
+        /* 時間日期 (12小時制設計) */
         #time-display {
-            font-size: 100px; /* 已加大 */
+            font-size: 100px;
             font-weight: bold;
             line-height: 1;
             display: flex;
@@ -95,19 +95,19 @@
             margin-top: 5px;
         }
         .ampm-label {
-            font-size: 40px; /* 已加大 */
+            font-size: 40px;
             font-weight: normal;
             color: #E5E5EA;
             margin-right: 10px;
         }
         #date-display {
-            font-size: 34px; /* 已加大 */
+            font-size: 30px; /* 已修改為 30px */
             text-align: center;
             line-height: 1.1;
             margin-bottom: 2px;
         }
 
-        /* 天氣整合區塊：強制兩行、置中、零縫隙 - 字體加大 */
+        /* 天氣整合區塊：強制兩行、置中、零縫隙 */
         #weather-box {
             display: flex;
             flex-direction: column;
@@ -122,17 +122,17 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            font-size: 32px; /* 已加大 */
+            font-size: 32px;
             line-height: 1.1;
         }
         #weather-row-2 {
-            margin-top: -2px; /* 消除文字預設字距空白，做到真正視覺零縫隙 */
+            margin-top: -2px; /* 消除文字預設字距空白 */
         }
-        #weather-icon { height: 46px; vertical-align: middle; } /* 配合字體同步放大 */
+        #weather-icon { height: 46px; vertical-align: middle; }
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
 
-        /* 警告與提示區塊 - 字體加大 */
+        /* 警告與提示區塊 */
         #warnings-container {
             display: flex;
             flex-wrap: wrap;
@@ -143,18 +143,18 @@
             color: #FFFFFF;
             border-radius: 8px;
             padding: 4px 10px;
-            font-size: 30px; /* 已加大 */
+            font-size: 30px;
             font-weight: bold;
         }
         .no-warning {
             color: #8E8E93;
-            font-size: 30px; /* 已加大 */
+            font-size: 30px;
             line-height: 1.2;
         }
 
-        /* 特別天氣提示跑馬燈 (修改為最多 6 行高度) - 字體加大 */
+        /* 特別天氣提示跑馬燈 (最多 6 行高度) */
         #swt-container {
-            font-size: 30px; /* 已加大 */
+            font-size: 30px;
             line-height: 1.3;
             max-height: 7.8em; /* 1.3行高 * 6行 = 7.8em 高度 */
             overflow: hidden;
@@ -164,9 +164,8 @@
         .swt-text {
             position: relative;
         }
-        /* JS 會動態加入此 class 以啟動跑馬燈 */
         .marquee-up {
-            animation: scrollUp 18s linear infinite; /* 稍微減緩速度，方便閱讀6行長文 */
+            animation: scrollUp 18s linear infinite;
         }
         @keyframes scrollUp {
             0% { top: 100%; }
@@ -239,12 +238,12 @@
         function updateClock() {
             const now = new Date();
             
-            // 右欄大時鐘：12小時制轉換
+            // 右欄大時鐘
             const rawHours = now.getHours();
             const mm = String(now.getMinutes()).padStart(2, '0');
             const ampm = rawHours >= 12 ? '下午' : '上午';
             let hh = rawHours % 12;
-            hh = hh ? hh : 12; // 將 0 點（半夜或中午）轉換為 12 點
+            hh = hh ? hh : 12;
             
             document.getElementById('time-display').innerHTML = `<span class="ampm-label">${ampm}</span><span>${hh}:${mm}</span>`;
 
@@ -262,14 +261,13 @@
 
         // --- 3. 數據抓取與渲染 ---
 
-        // 格式化到站時間 HTML
         function formatBusETA(etaString) {
             const etaTime = new Date(etaString);
             const now = new Date();
             const diffMs = etaTime - now;
             const diffMins = Math.floor(diffMs / 60000);
 
-            if (diffMins < 0) return null; // 過期班次
+            if (diffMins < 0) return null;
 
             const hh = String(etaTime.getHours()).padStart(2, '0');
             const mm = String(etaTime.getMinutes()).padStart(2, '0');
@@ -342,7 +340,7 @@
                 let swtData = {};
                 if(swtRes.status === 200) swtData = await swtRes.json();
 
-                // 1. 處理天氣、溫度、濕度 (分為兩行，置中，零縫隙)
+                // 1. 處理天氣、溫度、濕度
                 let currentTemp = '--';
                 let tsingYiTempObj = currentData.temperature.data.find(d => d.place === '青衣');
                 if (tsingYiTempObj) currentTemp = tsingYiTempObj.value;
@@ -352,19 +350,17 @@
                 let maxTemp = forecastData.weatherForecast[0].forecastMaxtemp.value;
                 let minTemp = forecastData.weatherForecast[0].forecastMintemp.value;
 
-                // 第一行：圖擺、現時溫度、現時濕度
                 document.getElementById('weather-row-1').innerHTML = `
                     <img id="weather-icon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png" alt="天氣圖標">
                     <span>${currentTemp}°C(青衣)</span>
                     <span>💧${humidity}%</span>
                 `;
-                // 第二行：最低溫、最高溫
                 document.getElementById('weather-row-2').innerHTML = `
                     <span class="temp-blue">❄️${minTemp}°C</span>
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告 (強制使用 Subtype，獨立檢查空狀態)
+                // 2. 處理天氣警告 (強制使用 Subtype)
                 let warningsHtml = '';
                 let hasWarnings = false;
                 
@@ -389,7 +385,7 @@
                     warningsContainer.innerHTML = warningsHtml;
                 }
 
-                // 3. 處理特別天氣提示 (獨立檢查空狀態)
+                // 3. 處理特別天氣提示
                 let swtText = '';
                 let hasSwt = false;
                 if (swtData.swt && swtData.swt.length > 0) {
@@ -405,7 +401,6 @@
                     swtContainerText.classList.remove('marquee-up');
                 } else {
                     swtContainerText.innerHTML = swtText;
-                    // 判斷是否需要跑馬燈 (如果內容高度大於 6 行的容器高度)
                     setTimeout(() => {
                         if (swtContainerText.scrollHeight > swtContainerBox.clientHeight) {
                             swtContainerText.classList.add('marquee-up');
@@ -420,12 +415,10 @@
             }
         }
 
-        // --- 4. 初始化與自動刷新 ---
         async function updateDashboard() {
             await fetchBuses();
             await fetchWeather();
             
-            // 更新頂部時間 (維持 24 小時制)
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
@@ -433,9 +426,7 @@
             document.getElementById('top-bar').textContent = `最後更新：${hh}:${mm}:${ss}（每30秒自動刷新）`;
         }
 
-        // 首次加載
         updateDashboard();
-        // 設定每 30 秒更新
         setInterval(updateDashboard, 30000);
 
     </script>
