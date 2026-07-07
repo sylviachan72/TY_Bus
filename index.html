@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>1313資訊網頁</title>
+    <title>資訊網頁</title>
     <style>
         /* 基礎設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -98,43 +98,24 @@
             margin-bottom: 4px;
         }
 
-        /* 天氣區塊：兩行置中、零縫隙貼合 */
-        #weather-box {
+        /* 天氣整合行 */
+        #weather-inline-row {
             display: flex;
-            flex-direction: column;
-            align-items: center; /* 讓兩行在容器內水平置中 */
-            width: 100%;
-            gap: 0; /* 兩行之間零縫隙 */
-            margin: 0;
-            padding: 0;
-        }
-        .weather-row {
-            display: flex;
-            justify-content: center; /* 單行內容水平置中 */
+            flex-wrap: wrap;
             align-items: center;
-            gap: 12px; /* 同一行各個資訊之間的橫向間距 */
+            gap: 8px;
             font-size: 26px;
-            line-height: 1.1; /* 縮減文字上下預設留白 */
-            margin: 0;
-            padding: 0;
-            width: 100%;
+            line-height: 1.1;
         }
-        #weather-icon { 
-            height: 38px; 
-            vertical-align: middle; 
-            margin: 0;
-            display: block;
-        }
-        .temp-red { color: #FF3B30; font-weight: bold; }
-        .temp-blue { color: #007AFF; font-weight: bold; }
+        #weather-icon { height: 40px; vertical-align: middle; }
+        .temp-red { color: #FF3B30; }
+        .temp-blue { color: #007AFF; }
 
         /* 警告與提示 */
         #warnings-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center; /* 警告標籤亦保持置中較美觀 */
             gap: 6px;
-            margin-top: 4px;
         }
         .warning-badge {
             background-color: #FF3B30;
@@ -147,8 +128,6 @@
         .no-warning {
             color: #8E8E93;
             font-size: 24px;
-            text-align: center;
-            width: 100%;
         }
 
         /* 特別天氣提示跑馬燈 (最多3行高度) */
@@ -159,8 +138,6 @@
             overflow: hidden;
             position: relative;
             width: 100%;
-            text-align: left; /* 提示文字靠左 */
-            margin-top: 4px;
         }
         .swt-text {
             position: relative;
@@ -180,19 +157,19 @@
     <div id="top-bar">最後更新：--:--:--（每30秒自動刷新）</div>
 
     <div id="main-container">
+        <!-- 左欄：巴士 -->
         <div id="left-col" class="scrollable">
             <div id="bus-list">正在載入巴士資訊...</div>
         </div>
 
+        <!-- 右欄：時間與天氣 -->
         <div id="right-col" class="scrollable">
             <div id="time-display">--:--</div>
             <div id="date-display">----年--月--日 星期-</div>
             
-            <div id="weather-box">
-                <div id="weather-row-1" class="weather-row">
-                    <span>載入天氣中...</span>
-                </div>
-                <div id="weather-row-2" class="weather-row"></div>
+            <div id="weather-inline-row">
+                <!-- 天氣圖標、現時溫度、濕度、極端溫度將匯聚於此 -->
+                <span id="weather-current-data">載入天氣中...</span>
             </div>
 
             <div id="warnings-container"></div>
@@ -236,13 +213,10 @@
         function updateClock() {
             const now = new Date();
             
-            // 右欄大時鐘 (12小時制顯示，但不加上下午，依您的排版草圖簡約格式)
-            let hh = now.getHours();
-            hh = hh % 12;
-            hh = hh ? hh : 12; // 0點顯示為12點
-            const hhStr = String(hh).padStart(2, '0');
+            // 右欄大時鐘
+            const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('time-display').textContent = `${hhStr}:${mm}`;
+            document.getElementById('time-display').textContent = `${hh}:${mm}`;
 
             // 右欄日期
             const yyyy = now.getFullYear();
@@ -287,6 +261,7 @@
                     
                     let etasHtml = '暫無班次資料';
                     if (data && data.data && data.data.length > 0) {
+                        // 過濾出有效班次並排序
                         const validETAs = data.data
                             .map(item => item.eta)
                             .filter(eta => eta != null)
@@ -338,7 +313,7 @@
                 let swtData = {};
                 if(swtRes.status === 200) swtData = await swtRes.json();
 
-                // 1. 處理天氣數據
+                // 1. 處理天氣、溫度、濕度
                 let currentTemp = '--';
                 let tsingYiTempObj = currentData.temperature.data.find(d => d.place === '青衣');
                 if (tsingYiTempObj) currentTemp = tsingYiTempObj.value;
@@ -348,17 +323,12 @@
                 let maxTemp = forecastData.weatherForecast[0].forecastMaxtemp.value;
                 let minTemp = forecastData.weatherForecast[0].forecastMintemp.value;
 
-                // 渲染第一行：圖標、現時溫度、濕度 (置中)
-                document.getElementById('weather-row-1').innerHTML = `
+                document.getElementById('weather-current-data').innerHTML = `
                     <img id="weather-icon" src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png" alt="天氣圖標">
                     <span>${currentTemp}°C(青衣)</span>
-                    <span>💧 ${humidity}%</span>
-                `;
-
-                // 渲染第二行：最高溫、最低溫 (置中，與第一行零縫隙)
-                document.getElementById('weather-row-2').innerHTML = `
-                    <span class="temp-red">☀️ ${maxTemp}°C</span>
-                    <span class="temp-blue">❄️ ${minTemp}°C</span>
+                    <span>💧${humidity}%</span>
+                    <span class="temp-blue">❄️${minTemp}°C</span>
+                    <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
                 // 2. 處理天氣警告 (強制使用 Subtype)
@@ -368,11 +338,11 @@
                 if (Object.keys(warningData).length > 0) {
                     for (const key in warningData) {
                         const warn = warningData[key];
-                        const code = warn.code; 
+                        const code = warn.code; // 這是子類型代號，如 WRAINA, TC3
                         if (code && warningSubTypes[code]) {
                             warningsHtml += `<div class="warning-badge">${warningSubTypes[code]}</div>`;
                             hasAlerts = true;
-                        } else if (code) {
+                        } else if (code) { // 預防未紀錄的警告
                             warningsHtml += `<div class="warning-badge">${warn.name}</div>`;
                             hasAlerts = true;
                         }
@@ -398,7 +368,7 @@
                     warningsContainer.innerHTML = warningsHtml;
                     swtContainerText.innerHTML = swtText;
                     
-                    // 判斷是否需要跑馬燈
+                    // 判斷是否需要跑馬燈 (如果內容高度大於容器高度)
                     setTimeout(() => {
                         if (swtContainerText.scrollHeight > swtContainerBox.clientHeight) {
                             swtContainerText.classList.add('marquee-up');
@@ -418,7 +388,7 @@
             await fetchBuses();
             await fetchWeather();
             
-            // 更新頂部最後更新時間 (24小時制)
+            // 更新頂部時間
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
@@ -428,7 +398,7 @@
 
         // 首次加載
         updateDashboard();
-        // 設定每 30 秒自動更新
+        // 設定每 30 秒更新
         setInterval(updateDashboard, 30000);
 
     </script>
