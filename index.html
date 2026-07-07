@@ -38,9 +38,9 @@
             overflow: hidden;
         }
 
-        /* 左欄：巴士資訊 (改為 55%) */
+        /* 左欄：巴士資訊 (改為 50%) */
         #left-col {
-            width: 55%;
+            width: 50%;
             border-right: 1px solid #333333;
             padding: 10px 15px;
         }
@@ -75,9 +75,9 @@
         .time-red { color: #FF3B30; }
         .time-white { color: #FFFFFF; }
 
-        /* 右欄：時間與天氣 (改為 45%) 極致緊湊 */
+        /* 右欄：時間與天氣 (改為 50%) 極致緊湊 */
         #right-col {
-            width: 45%;
+            width: 50%;
             padding: 10px;
             display: flex;
             flex-direction: column;
@@ -101,7 +101,7 @@
             margin-right: 10px;
         }
         #date-display {
-            font-size: 30px; /* 已修改為 30px */
+            font-size: 30px;
             text-align: center;
             line-height: 1.1;
             margin-bottom: 2px;
@@ -360,7 +360,7 @@
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告 (強制使用 Subtype)
+                // 2. 處理天氣警告
                 let warningsHtml = '';
                 let hasWarnings = false;
                 
