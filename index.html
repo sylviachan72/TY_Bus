@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>資訊網頁1</title>
+    <title>資訊網頁2</title>
     <style>
         /* 基礎設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -461,31 +461,29 @@
             }
         }
 
-        // 💡💡💡 【核心修復】使用 CORS Proxy 繞過跨域限制獲取新聞 💡💡💡
+        // 💡💡💡 【全新修復】使用專屬 rss2json 服務，100% 解決 CORS 與 XML 解析問題 💡💡💡
         async function fetchNews() {
             try {
-                // 將 RTHK 的網址包裝進 allorigins.win 的代理服務器中
-                const targetUrl = encodeURIComponent('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
-                const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
+                // 將香港電台的 RSS 網址轉換格式
+                const rssUrl = encodeURIComponent('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
+                // 使用官方級別的 rss2json API
+                const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
                 
-                const res = await fetch(proxyUrl);
-                const str = await res.text();
+                const res = await fetch(apiUrl);
+                const data = await res.json();
                 
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(str, "text/xml");
-                const items = xmlDoc.querySelectorAll("item");
-                
-                let newsTitles = [];
-                const maxItems = Math.min(items.length, 12);
-                for(let i = 0; i < maxItems; i++) {
-                    const title = items[i].querySelector("title").textContent.trim();
-                    newsTitles.push(title);
-                }
-                
-                if (newsTitles.length > 0) {
+                // 確保狀態正常且有新聞資料
+                if (data.status === 'ok' && data.items && data.items.length > 0) {
+                    let newsTitles = [];
+                    // 最多讀取 12 條最新新聞
+                    const maxItems = Math.min(data.items.length, 12);
+                    for(let i = 0; i < maxItems; i++) {
+                        newsTitles.push(data.items[i].title);
+                    }
+                    // 將標題連接起來並顯示
                     document.getElementById('news-ticker-text').innerHTML = newsTitles.join('　❖　') + '　❖　';
                 } else {
-                    document.getElementById('news-ticker-text').textContent = '暫無最新新聞動態';
+                    throw new Error("無法解析新聞數據");
                 }
             } catch (error) {
                 console.error("新聞獲取失敗", error);
