@@ -74,22 +74,22 @@
         }
         .time-white { color: #FFFFFF; }
         
-        /* 💡 【核心修改】優化長者視力：將原本模糊的暗紅改為「高對比螢光黃」，並強制加粗 */
+        /* 10分鐘內到站：高對比螢光黃加粗 */
         .time-urgent { 
             color: #FFD60A; 
             font-weight: 900; 
         }
 
-        /* 右欄：時間與天氣 (50%) 極致緊湊 */
+        /* 右欄：時間與天氣 (50%) */
         #right-col {
             width: 50%;
             padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 8px; /* 區塊之間的緊湊間距 */
+            gap: 8px;
         }
 
-        /* 時間日期 (12小時制設計) */
+        /* 時間日期 */
         #time-display {
             font-size: 100px;
             font-weight: bold;
@@ -106,19 +106,19 @@
             margin-right: 10px;
         }
         #date-display {
-            font-size: 30px; /* 保持 30px */
+            font-size: 30px;
             text-align: center;
             line-height: 1.1;
             margin-bottom: 2px;
         }
 
-        /* 天氣整合區塊：強制兩行、置中、零縫隙 */
+        /* 天氣整合區塊 */
         #weather-box {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0; /* 零縫隙貼合 */
+            gap: 0;
             margin: 2px 0;
         }
         .weather-row {
@@ -131,7 +131,7 @@
             line-height: 1.1;
         }
         #weather-row-2 {
-            margin-top: -2px; /* 消除文字預設字距空白 */
+            margin-top: -2px;
         }
         #weather-icon { height: 46px; vertical-align: middle; }
         .temp-red { color: #FF3B30; }
@@ -161,7 +161,7 @@
         #swt-container {
             font-size: 30px;
             line-height: 1.3;
-            max-height: 7.8em; /* 1.3行高 * 6行 = 7.8em 高度 */
+            max-height: 7.8em;
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -176,6 +176,54 @@
             0% { top: 100%; }
             100% { top: -150%; }
         }
+
+        /* 📺 底部橫向電視新聞跑馬燈區塊 */
+        #news-ticker-container {
+            display: flex;
+            background-color: #0A0A0A;
+            border-top: 2px solid #333333;
+            height: 56px;
+            align-items: center;
+            overflow: hidden;
+            flex-shrink: 0; /* 固定在底部不縮水 */
+        }
+        /* 新聞紅底白字標題塊 */
+        .ticker-title {
+            background-color: #FF3B30;
+            color: #FFFFFF;
+            font-size: 26px;
+            font-weight: bold;
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            z-index: 10; /* 確保標題壓在滾動文字上方 */
+            box-shadow: 5px 0 10px rgba(0,0,0,0.5);
+        }
+        /* 滾動文字容器 */
+        .ticker-wrap {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        /* 橫向滾動動畫效果 */
+        .ticker-move {
+            display: inline-block;
+            padding-left: 100%; /* 從最右側螢幕外開始 */
+            font-size: 30px; /* 長者清晰字體 */
+            color: #FFFFFF;
+            font-weight: bold;
+            white-space: nowrap;
+            animation: marquee-left 60s linear infinite; /* 60秒勻速循環 */
+        }
+        @keyframes marquee-left {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
     </style>
 </head>
 <body>
@@ -183,24 +231,38 @@
     <div id="top-bar">最後更新：--:--:--（每30秒自動刷新）</div>
 
     <div id="main-container">
+        <!-- 左欄：巴士 -->
         <div id="left-col" class="scrollable">
             <div id="bus-list">正在載入巴士資訊...</div>
         </div>
 
+        <!-- 右欄：時間與天氣 -->
         <div id="right-col" class="scrollable">
+            <!-- 12小時制時間顯示 -->
             <div id="time-display">--:--</div>
             <div id="date-display">----年--月--日 星期-</div>
             
+            <!-- 天氣區塊：分兩行、置中、零縫隙 -->
             <div id="weather-box">
                 <div id="weather-row-1" class="weather-row">載入天氣中...</div>
                 <div id="weather-row-2" class="weather-row"></div>
             </div>
 
+            <!-- 天氣警告區塊 -->
             <div id="warnings-container"></div>
             
+            <!-- 特別天氣提示區塊 (支援 6 行跑馬燈) -->
             <div id="swt-container">
                 <div id="swt-text" class="swt-text"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- 📺 底部電視新聞跑馬燈 -->
+    <div id="news-ticker-container">
+        <span class="ticker-title">即時新聞</span>
+        <div class="ticker-wrap">
+            <div id="news-ticker-text" class="ticker-move">正在從香港電台獲取最新即時新聞...</div>
         </div>
     </div>
 
@@ -272,7 +334,6 @@
             const mm = String(etaTime.getMinutes()).padStart(2, '0');
             const timeStr = `${hh}:${mm}`;
 
-            // 💡 10分鐘內到站：改套用 time-urgent 樣式（黃色加粗）
             if (diffMins < 10) {
                 return `<span class="time-white">${timeStr}</span>(<span class="time-urgent">${diffMins}分鐘</span>)`;
             } else {
@@ -415,9 +476,44 @@
             }
         }
 
+        // 📺 獲取香港電台即時新聞（綜合）邏輯
+        async function fetchNews() {
+            try {
+                // 讀取 RTHK 綜合即時新聞 RSS
+                const res = await fetch('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
+                const str = await res.text();
+                
+                // 解析 XML 格式
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(str, "text/xml");
+                const items = xmlDoc.querySelectorAll("item");
+                
+                let newsTitles = [];
+                // 自動抓取最新的 12 條新聞標題
+                const maxItems = Math.min(items.length, 12);
+                for(let i = 0; i < maxItems; i++) {
+                    const title = items[i].querySelector("title").textContent.trim();
+                    newsTitles.push(title);
+                }
+                
+                if (newsTitles.length > 0) {
+                    // 使用特別符號「 ❖ 」拼接新聞標題
+                    document.getElementById('news-ticker-text').innerHTML = newsTitles.join('　❖　') + '　❖　';
+                } else {
+                    document.getElementById('news-ticker-text').textContent = '暫無最新新聞動態';
+                }
+            } catch (error) {
+                console.error("新聞獲取失敗", error);
+                document.getElementById('news-ticker-text').textContent = '即時新聞系統載入故障，正在嘗試重新連接...';
+            }
+        }
+
+
+        // --- 4. 初始化與自動刷新 ---
         async function updateDashboard() {
             await fetchBuses();
             await fetchWeather();
+            await fetchNews(); // 每 30 秒自動背景撈取最新新聞
             
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
