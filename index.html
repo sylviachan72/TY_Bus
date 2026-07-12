@@ -177,29 +177,29 @@
             100% { top: -150%; }
         }
 
-        /* 📺 底部橫向電視新聞跑馬燈區塊 */
+        /* 📺 底部橫向電視新聞跑馬燈區塊 (已加高並放大字體) */
         #news-ticker-container {
             display: flex;
             background-color: #0A0A0A;
             border-top: 2px solid #333333;
-            height: 56px;
+            height: 75px; /* 加高容器以容納更大的字體 */
             align-items: center;
             overflow: hidden;
-            flex-shrink: 0; /* 固定在底部不縮水 */
+            flex-shrink: 0; 
         }
         /* 新聞紅底白字標題塊 */
         .ticker-title {
             background-color: #FF3B30;
             color: #FFFFFF;
-            font-size: 26px;
+            font-size: 34px; /* 字體加大 */
             font-weight: bold;
-            padding: 0 15px;
+            padding: 0 18px;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             white-space: nowrap;
-            z-index: 10; /* 確保標題壓在滾動文字上方 */
+            z-index: 10; 
             box-shadow: 5px 0 10px rgba(0,0,0,0.5);
         }
         /* 滾動文字容器 */
@@ -213,12 +213,12 @@
         /* 橫向滾動動畫效果 */
         .ticker-move {
             display: inline-block;
-            padding-left: 100%; /* 從最右側螢幕外開始 */
-            font-size: 30px; /* 長者清晰字體 */
+            padding-left: 100%; 
+            font-size: 45px; /* 特大字體，長者清晰可見 */
             color: #FFFFFF;
             font-weight: bold;
             white-space: nowrap;
-            animation: marquee-left 60s linear infinite; /* 60秒勻速循環 */
+            animation: marquee-left 60s linear infinite; 
         }
         @keyframes marquee-left {
             0% { transform: translate3d(0, 0, 0); }
@@ -479,17 +479,14 @@
         // 📺 獲取香港電台即時新聞（綜合）邏輯
         async function fetchNews() {
             try {
-                // 讀取 RTHK 綜合即時新聞 RSS
                 const res = await fetch('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
                 const str = await res.text();
                 
-                // 解析 XML 格式
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(str, "text/xml");
                 const items = xmlDoc.querySelectorAll("item");
                 
                 let newsTitles = [];
-                // 自動抓取最新的 12 條新聞標題
                 const maxItems = Math.min(items.length, 12);
                 for(let i = 0; i < maxItems; i++) {
                     const title = items[i].querySelector("title").textContent.trim();
@@ -497,7 +494,6 @@
                 }
                 
                 if (newsTitles.length > 0) {
-                    // 使用特別符號「 ❖ 」拼接新聞標題
                     document.getElementById('news-ticker-text').innerHTML = newsTitles.join('　❖　') + '　❖　';
                 } else {
                     document.getElementById('news-ticker-text').textContent = '暫無最新新聞動態';
@@ -513,7 +509,7 @@
         async function updateDashboard() {
             await fetchBuses();
             await fetchWeather();
-            await fetchNews(); // 每 30 秒自動背景撈取最新新聞
+            await fetchNews(); 
             
             const now = new Date();
             const hh = String(now.getHours()).padStart(2, '0');
