@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>資訊網頁</title>
+    <title>資訊網頁1</title>
     <style>
         /* 基礎設定 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,14 +14,14 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* 隱藏整體滾動 */
+            overflow: hidden;
         }
 
         /* 隱藏滾動條但保留滾動功能 */
         ::-webkit-scrollbar { display: none; }
         .scrollable { scrollbar-width: none; -ms-overflow-style: none; overflow-y: auto; }
 
-        /* 頂部更新時間 (維持24小時制) */
+        /* 頂部更新時間 */
         #top-bar {
             text-align: center;
             font-size: 20px;
@@ -31,14 +31,14 @@
             flex-shrink: 0;
         }
 
-        /* 主佈局：左右雙欄 (50/50 均分) */
+        /* 主佈局：左右雙欄 */
         #main-container {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
 
-        /* 左欄：巴士資訊 (50%) */
+        /* 左欄：巴士資訊 */
         #left-col {
             width: 50%;
             border-right: 1px solid #333333;
@@ -80,7 +80,7 @@
             font-weight: 900; 
         }
 
-        /* 右欄：時間與天氣 (50%) */
+        /* 右欄：時間與天氣 */
         #right-col {
             width: 50%;
             padding: 10px;
@@ -130,9 +130,7 @@
             font-size: 32px;
             line-height: 1.1;
         }
-        #weather-row-2 {
-            margin-top: -2px;
-        }
+        #weather-row-2 { margin-top: -2px; }
         #weather-icon { height: 46px; vertical-align: middle; }
         .temp-red { color: #FF3B30; }
         .temp-blue { color: #007AFF; }
@@ -157,7 +155,7 @@
             line-height: 1.2;
         }
 
-        /* 特別天氣提示跑馬燈 (最多 6 行高度) */
+        /* 特別天氣提示跑馬燈 */
         #swt-container {
             font-size: 30px;
             line-height: 1.3;
@@ -166,32 +164,27 @@
             position: relative;
             width: 100%;
         }
-        .swt-text {
-            position: relative;
-        }
-        .marquee-up {
-            animation: scrollUp 18s linear infinite;
-        }
+        .swt-text { position: relative; }
+        .marquee-up { animation: scrollUp 18s linear infinite; }
         @keyframes scrollUp {
             0% { top: 100%; }
             100% { top: -150%; }
         }
 
-        /* 📺 底部橫向電視新聞跑馬燈區塊 (已加高並放大字體) */
+        /* 📺 底部橫向電視新聞跑馬燈區塊 */
         #news-ticker-container {
             display: flex;
             background-color: #0A0A0A;
             border-top: 2px solid #333333;
-            height: 75px; /* 加高容器以容納更大的字體 */
+            height: 75px; 
             align-items: center;
             overflow: hidden;
             flex-shrink: 0; 
         }
-        /* 新聞紅底白字標題塊 */
         .ticker-title {
             background-color: #FF3B30;
             color: #FFFFFF;
-            font-size: 34px; /* 字體加大 */
+            font-size: 34px; 
             font-weight: bold;
             padding: 0 18px;
             height: 100%;
@@ -202,7 +195,6 @@
             z-index: 10; 
             box-shadow: 5px 0 10px rgba(0,0,0,0.5);
         }
-        /* 滾動文字容器 */
         .ticker-wrap {
             flex: 1;
             overflow: hidden;
@@ -210,11 +202,10 @@
             display: flex;
             align-items: center;
         }
-        /* 橫向滾動動畫效果 */
         .ticker-move {
             display: inline-block;
             padding-left: 100%; 
-            font-size: 45px; /* 特大字體，長者清晰可見 */
+            font-size: 45px; 
             color: #FFFFFF;
             font-weight: bold;
             white-space: nowrap;
@@ -242,7 +233,7 @@
             <div id="time-display">--:--</div>
             <div id="date-display">----年--月--日 星期-</div>
             
-            <!-- 天氣區塊：分兩行、置中、零縫隙 -->
+            <!-- 天氣區塊 -->
             <div id="weather-box">
                 <div id="weather-row-1" class="weather-row">載入天氣中...</div>
                 <div id="weather-row-2" class="weather-row"></div>
@@ -251,7 +242,7 @@
             <!-- 天氣警告區塊 -->
             <div id="warnings-container"></div>
             
-            <!-- 特別天氣提示區塊 (支援 6 行跑馬燈) -->
+            <!-- 特別天氣提示區塊 -->
             <div id="swt-container">
                 <div id="swt-text" class="swt-text"></div>
             </div>
@@ -262,7 +253,7 @@
     <div id="news-ticker-container">
         <span class="ticker-title">即時新聞</span>
         <div class="ticker-wrap">
-            <div id="news-ticker-text" class="ticker-move">正在從香港電台獲取最新即時新聞...</div>
+            <div id="news-ticker-text" class="ticker-move">正在獲取最新即時新聞...</div>
         </div>
     </div>
 
@@ -295,11 +286,9 @@
         };
 
 
-        // --- 2. 時鐘與日期邏輯 (12 小時制) ---
+        // --- 2. 時鐘與日期邏輯 ---
         function updateClock() {
             const now = new Date();
-            
-            // 右欄大時鐘
             const rawHours = now.getHours();
             const mm = String(now.getMinutes()).padStart(2, '0');
             const ampm = rawHours >= 12 ? '下午' : '上午';
@@ -308,7 +297,6 @@
             
             document.getElementById('time-display').innerHTML = `<span class="ampm-label">${ampm}</span><span>${hh}:${mm}</span>`;
 
-            // 右欄日期
             const yyyy = now.getFullYear();
             const month = now.getMonth() + 1;
             const date = now.getDate();
@@ -401,7 +389,6 @@
                 let swtData = {};
                 if(swtRes.status === 200) swtData = await swtRes.json();
 
-                // 1. 處理天氣、溫度、濕度
                 let currentTemp = '--';
                 let tsingYiTempObj = currentData.temperature.data.find(d => d.place === '青衣');
                 if (tsingYiTempObj) currentTemp = tsingYiTempObj.value;
@@ -421,7 +408,6 @@
                     <span class="temp-red">☀️${maxTemp}°C</span>
                 `;
 
-                // 2. 處理天氣警告
                 let warningsHtml = '';
                 let hasWarnings = false;
                 
@@ -446,7 +432,6 @@
                     warningsContainer.innerHTML = warningsHtml;
                 }
 
-                // 3. 處理特別天氣提示
                 let swtText = '';
                 let hasSwt = false;
                 if (swtData.swt && swtData.swt.length > 0) {
@@ -476,10 +461,14 @@
             }
         }
 
-        // 📺 獲取香港電台即時新聞（綜合）邏輯
+        // 💡💡💡 【核心修復】使用 CORS Proxy 繞過跨域限制獲取新聞 💡💡💡
         async function fetchNews() {
             try {
-                const res = await fetch('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
+                // 將 RTHK 的網址包裝進 allorigins.win 的代理服務器中
+                const targetUrl = encodeURIComponent('https://rthk.hk/rthk/news/rss/c_expressnews_gnews.xml');
+                const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
+                
+                const res = await fetch(proxyUrl);
                 const str = await res.text();
                 
                 const parser = new DOMParser();
