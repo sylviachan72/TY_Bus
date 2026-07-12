@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>資訊核心板</title>
+    <title>資訊核心板2</title>
     <style>
         /* 全域重設與極致緊湊設定 */
         * {
@@ -48,10 +48,10 @@
             overflow-y: auto;
             border-right: 2px solid #222222;
             padding: 6px 10px;
-            scrollbar-width: none; /* Firefox 隱藏捲軸 */
+            scrollbar-width: none;
         }
         .left-col::-webkit-scrollbar {
-            display: none; /* Chrome/Safari 隱藏捲軸 */
+            display: none;
         }
 
         /* 右欄 50%：天氣與時間 */
@@ -119,11 +119,11 @@
 
         /* 倒數時間顏色定義 */
         .countdown-near {
-            color: #ffaa00; /* 芒果黃 */
+            color: #ffaa00; 
             font-weight: bold;
         }
         .countdown-far {
-            color: #ffffff; /* 超過10分鐘為白色 */
+            color: #ffffff; 
         }
 
         /* 右欄：時間日期區塊 */
@@ -157,7 +157,7 @@
         .date-display {
             font-size: 30px;
             color: #ffffff;
-            margin-top: -6px; /* 極致貼近時間 */
+            margin-top: -6px; 
             font-weight: bold;
         }
 
@@ -169,7 +169,6 @@
             align-items: center;
         }
 
-        /* 天氣第一行：即時溫度與濕度 */
         .weather-row1 {
             font-size: 32px;
             color: #ffffff;
@@ -186,24 +185,23 @@
             margin-right: 6px;
         }
 
-        /* 天氣第二行：最低最高溫（零縫隙） */
         .weather-row2 {
             font-size: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 38px;
-            margin-top: 0px; /* 零縫隙貼合 */
+            margin-top: 0px; 
             font-weight: bold;
         }
 
         .temp-low {
-            color: #00a2ff; /* 藍色 */
+            color: #00a2ff; 
             margin-right: 24px;
         }
 
         .temp-high {
-            color: #ff4d4d; /* 紅色 */
+            color: #ff4d4d; 
         }
 
         /* 天氣警告區塊 */
@@ -227,7 +225,7 @@
 
         .no-warning {
             font-size: 30px;
-            color: #444444; /* 較暗的灰色 */
+            color: #444444; 
             font-weight: bold;
         }
 
@@ -240,14 +238,13 @@
 
         .no-swt {
             font-size: 30px;
-            color: #444444; /* 較暗的灰色 */
+            color: #444444; 
             text-align: center;
             font-weight: bold;
         }
 
-        /* 垂直滾動跑馬燈核心限制（最高5行） */
         .swt-box {
-            max-height: 195px; /* 30px * 5行 * 1.3行高 */
+            max-height: 195px; 
             overflow: hidden;
             position: relative;
             background-color: #050505;
@@ -266,7 +263,6 @@
             padding-bottom: 15px;
         }
 
-        /* 垂直跑馬燈動畫 */
         @keyframes vscroll {
             0% { transform: translateY(0); }
             100% { transform: translateY(-50%); }
@@ -310,7 +306,8 @@
             white-space: nowrap;
             font-size: 26px;
             color: #ffffff;
-            animation: hscroll 30s linear infinite; /* 速度適中 */
+            /* 🔴 這裡將原本的 30s 改成了 80s，大幅放慢長者的閱讀速度 */
+            animation: hscroll 80s linear infinite; 
             padding-left: 10px;
         }
 
@@ -328,8 +325,7 @@
 
     <div class="content-area">
         
-        <div class="left-col" id="bus-container">
-            </div>
+        <div class="left-col" id="bus-container"></div>
 
         <div class="right-col">
             
@@ -372,7 +368,6 @@
     </div>
 
     <script>
-        // 1. 巴士線路核心規格設定 (包含個別的專屬底色與特定的 API 節點)
         const busRoutesConfig = [
             { id: '249X', no: '249X', dir: '博康', stop: '青桃樓', bg: '#0066cc', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1' },
             { id: '42A',  no: '42A',  dir: '西九龍', stop: '青桃樓', bg: '#008833', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1' },
@@ -383,7 +378,6 @@
             { id: '243M', no: '243M', dir: '荃灣',   stop: '美景花園',bg: '#d32f2f', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1' }
         ];
 
-        // 天文台警告對應字典 (完整支援子類型代碼解析)
         const warningDict = {
             "WFIREY": "黃色火災危險警告", "WFIRER": "紅色火災危險警告",
             "WRAINA": "黃色暴雨警告信號", "WRAINR": "紅色暴雨警告信號", "WRAINB": "黑色暴雨警告信號",
@@ -396,7 +390,6 @@
             "WL": "山泥傾瀉警告", "WFNL": "新界北部水浸特別報告"
         };
 
-        // 初始化生成左側巴士 HTML 結構
         function initBusLayout() {
             const container = document.getElementById('bus-container');
             container.innerHTML = busRoutesConfig.map(route => `
@@ -412,7 +405,6 @@
             `).join('');
         }
 
-        // 2. 時鐘與日期更新常式 (12小時制 + 24小時制頂部時間)
         function updateClock() {
             const now = new Date();
             let hours = now.getHours();
@@ -420,7 +412,7 @@
             const ampm = hours >= 12 ? '下午' : '上午';
             
             hours = hours % 12;
-            hours = hours ? hours : 12; // 0點轉化為12點
+            hours = hours ? hours : 12; 
             
             document.getElementById('clock-ampm').innerText = ampm;
             document.getElementById('clock-time').innerText = `${hours}:${minutes}`;
@@ -432,14 +424,12 @@
             document.getElementById('date-string').innerText = `${year}年${month}月${date}日 ${days[now.getDay()]}`;
         }
 
-        // 更新頂部數據重新整理的時間戳記
         function updateFetchTimestamp() {
             const now = new Date();
             const pad = (n) => String(n).padStart(2, '0');
             document.getElementById('last-update-time').innerText = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
         }
 
-        // 3. 異步獲取單一巴士路線 ETA
         async function fetchSingleBusETA(route) {
             try {
                 const response = await fetch(route.url);
@@ -457,7 +447,6 @@
                         return { timeStr: `${hh}:${mm}`, mins: diffMins };
                     });
                 
-                // 依時間排序，確保最接近的班次在前，並精確篩選前三班
                 parsedEtas.sort((a, b) => a.mins - b.mins);
                 return parsedEtas.slice(0, 3);
             } catch (e) {
@@ -466,7 +455,6 @@
             }
         }
 
-        // 渲染巴士時間 (小於10分鐘倒數套用芒果黃)
         function renderBusTimesHtml(etas) {
             if (etas === null) return `<span style="font-size:26px; color:#bb3333;">資料獲取失敗</span>`;
             if (etas.length === 0) return `<span style="font-size:26px; color:#666666;">現時沒有預計班次</span>`;
@@ -477,10 +465,8 @@
             }).join('<span class="time-sep">|</span>');
         }
 
-        // 4. 天文台即時天氣與今日預測數據獲取
         async function updateWeatherInfo() {
             try {
-                // A. 讀取現時天氣資料 (獲取青衣現時溫度、全港濕度、圖標)
                 const resRhr = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
                 const dataRhr = await resRhr.json();
                 
@@ -500,14 +486,12 @@
                     iconId = dataRhr.icon[0];
                 }
                 
-                // 渲染天氣第一行
                 const iconUrl = iconId ? `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconId}.png` : '';
                 document.getElementById('weather-row1').innerHTML = `
                     ${iconUrl ? `<img src="${iconUrl}" class="weather-icon" alt="天氣圖標">` : ''}
                     <span>${tyTemp}°C(青衣) 💧${humidity}%</span>
                 `;
 
-                // B. 讀取九天降雨與溫度預報 (精確擷取今日最高與最低氣溫)
                 const resFnd = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc');
                 const dataFnd = await resFnd.json();
                 
@@ -518,7 +502,6 @@
                     maxTemp = dataFnd.weatherForecast[0].forecastMaxtemp.value;
                 }
                 
-                // 渲染天氣第二行（零縫隙貼合）
                 document.getElementById('weather-row2').innerHTML = `
                     <span class="temp-low">❄️${minTemp}°C</span>
                     <span class="temp-high">☀️${maxTemp}°C</span>
@@ -528,7 +511,6 @@
             }
         }
 
-        // 5. 解析與獲取天氣警告
         async function updateWeatherWarnings() {
             try {
                 const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
@@ -538,7 +520,6 @@
                 if (data && Object.keys(data).length > 0) {
                     for (let key in data) {
                         let item = data[key];
-                        // 優先檢查子代碼 (例如 WRAINA / TC3 等)，若無則採用主鍵
                         let alertCode = item.code || key;
                         if (warningDict[alertCode]) {
                             activeAlerts.push(warningDict[alertCode]);
@@ -562,7 +543,6 @@
             }
         }
 
-        // 6. 獲取特別天氣提示並處理垂直跑馬燈控制
         async function updateSpecialWeatherTips() {
             try {
                 const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=swt&lang=tc');
@@ -576,22 +556,20 @@
                         <div class="swt-box" id="swt-box-elem">
                             <div class="swt-content" id="swt-scroll-content">
                                 <div class="swt-block">${combinedText}</div>
-                                <div class="swt-block">${combinedText}</div> </div>
+                                <div class="swt-block">${combinedText}</div>
+                            </div>
                         </div>
                     `;
                     
-                    // 動態判斷提示文字高度，若超過5行高度則啟動跑馬燈，否則保持靜態
                     setTimeout(() => {
                         const content = document.getElementById('swt-scroll-content');
                         const box = document.getElementById('swt-box-elem');
                         if (content && box) {
                             const singleBlockHeight = content.scrollHeight / 2;
                             if (singleBlockHeight > 195) {
-                                // 依字數動態分配合理的動畫流速
                                 const duration = Math.max(14, singleBlockHeight / 18);
                                 content.style.animation = `vscroll ${duration}s linear infinite`;
                             } else {
-                                // 字數極少則不需要滾動，展示單個內容即可
                                 content.style.animation = 'none';
                                 content.innerHTML = `<div class="swt-block">${combinedText}</div>`;
                             }
@@ -607,13 +585,7 @@
             }
         }
 
-        // 7. 電視新聞跑馬燈：聚合香港電台即時新聞與環境動態
         function refreshNewsTicker() {
-            const now = new Date();
-            const dateStr = `${now.getMonth() + 1}月${now.getDate()}日`;
-            
-            // 由於香港電台沒有直接對外開放具備公用跨域(CORS)權限的即時 JSON 介面，
-            // 這裡採用專業的動態時事流組合技術，生成與港台同步的本地化、高擬真公共即時新聞。
             const mockRthkHeadlines = [
                 `【香港電台即時新聞】天文台提醒市民今日天氣持續酷熱，長者應留在空氣流通的室內，並及時補充足夠水分。`,
                 `【交通消息】青衣青綠街、楓樹窩路及長青邨周邊路網目前交通運作順暢，各區九巴班次基本維持正常。`,
@@ -625,16 +597,13 @@
             const mergedNews = mockRthkHeadlines.join(' ｜ ');
             const tickerText = document.getElementById('ticker-text');
             if (tickerText) {
-                // 水平滾動雙重複製，完美對接頭尾循環無縫流動
                 tickerText.innerHTML = `<span>${mergedNews}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span>${mergedNews}</span>`;
             }
         }
 
-        // 8. 總調度核心刷新機制 (每 30 秒併發呼叫所有數據源)
         async function masterRefreshRoutine() {
             updateFetchTimestamp();
             
-            // 同步併發請求所有巴士 ETA 及天文台天氣端口，降低網絡延迟等待時間
             const busTasks = busRoutesConfig.map(async (route) => {
                 const etas = await fetchSingleBusETA(route);
                 const el = document.getElementById(`times-${route.id}`);
@@ -648,17 +617,13 @@
             await Promise.allSettled([...busTasks, weatherTask, warningTask, swtTask]);
         }
 
-        // 網頁初始化與定時器掛載
         window.addEventListener('DOMContentLoaded', () => {
             initBusLayout();
             updateClock();
             refreshNewsTicker();
             masterRefreshRoutine();
             
-            // 時間時鐘需每秒鐘維持極致精確更新
             setInterval(updateClock, 1000);
-            
-            // 核心伺服器 API 數據每 30 秒自動刷新
             setInterval(masterRefreshRoutine, 30000);
         });
     </script>
