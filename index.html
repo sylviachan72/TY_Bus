@@ -211,8 +211,9 @@
             width: 100%;
             animation: scrollUp 20s linear infinite;
         }
-        /* 暫停特效：手指點擊或滑鼠懸停時暫停跑馬燈方便長者閱讀 */
-        .swt-marquee-content:hover {
+        /* 特別天氣提示：觸碰暫停 (hover對應滑鼠, active對應觸控) */
+        .swt-marquee-content:hover, 
+        .swt-marquee-content:active {
             animation-play-state: paused;
         }
         @keyframes scrollUp {
@@ -222,7 +223,7 @@
         .swt-p {
             margin-bottom: 8px;
             line-height: 1.1;
-            color: #FFFFFF; /* 已改回純白色 */
+            color: #FFFFFF; /* 純白色 */
         }
 
         /* 底部：即時新聞跑馬燈 */
@@ -262,8 +263,13 @@
             font-size: 45px;
             color: #FFFFFF;
             font-weight: bold;
-            animation: marqueeLeft 45s linear infinite;
+            animation: marqueeLeft 60s linear infinite; /* 預設 60 秒，會由 JS 覆寫 */
             padding-left: 20%;
+        }
+        /* 新聞跑馬燈：觸碰暫停 (hover對應滑鼠, active對應觸控) */
+        .news-marquee-content:hover, 
+        .news-marquee-content:active {
+            animation-play-state: paused;
         }
         @keyframes marqueeLeft {
             0% { transform: translate3d(0, 0, 0); }
@@ -397,7 +403,7 @@
             'https://rthk.hk/rthk/news/rss/c_expressnews_csport.xml'
         ];
 
-        // 【更新】使用更穩定的 RSS to JSON API 服務取代原本的 CORS_PROXY
+        // 穩定的 RSS to JSON API 服務
         const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
 
         // 更新系統時間與日期
@@ -584,7 +590,7 @@
             }
         }
 
-        // 【更新】獲取與混合香港電台新聞的函數
+        // 獲取與混合香港電台新聞的函數
         async function fetchNews() {
             try {
                 let allTitles = [];
@@ -612,9 +618,9 @@
                     const newsElement = document.getElementById('news-marquee-text');
                     newsElement.innerHTML = marqueeText;
                     
-  // 【修改】動態計算長度來優化滾動速度 (每條新聞給予更多時間，大幅放慢整體速度)
-const speed = Math.max(60, Math.floor(allTitles.length * 4)); 
-                  newsElement.style.animationDuration = `${speed}s`;
+                    // 【已修改】大幅放慢滾動速度。公式: (新聞數量 x 4秒)。最少跑 60 秒
+                    const speed = Math.max(60, Math.floor(allTitles.length * 4));
+                    newsElement.style.animationDuration = `${speed}s`;
                 } else {
                     document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
                 }
