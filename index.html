@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>資訊核心板</title>
+    <title>資訊板</title>
     <style>
         /* 全域重設與極致緊湊設定 */
         * {
@@ -84,10 +84,11 @@
             color: #ffffff;
             display: flex;
             align-items: center;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             line-height: 1.2;
         }
 
+        /* 巴士圓角標籤 (顏色由JS隨機寫入) */
         .bus-label {
             display: inline-block;
             padding: 2px 12px;
@@ -101,12 +102,21 @@
             box-shadow: 0 2px 4px rgba(255,255,255,0.1);
         }
 
+        /* 巴士時間排版 - 更新：啟用自動換行功能 */
         .bus-times {
             font-size: 32px;
             color: #ffffff;
             margin-top: 2px;
-            line-height: 1.3;
-            white-space: nowrap;
+            line-height: 1.4;
+            display: flex;
+            flex-wrap: wrap; /* 空間不夠時自動將第三班次換行 */
+            align-items: center;
+        }
+
+        /* 確保每一組時間(如 07:10(14分鐘)) 內部不會被切斷 */
+        .time-block {
+            display: inline-block;
+            white-space: nowrap; 
         }
 
         .time-sep {
@@ -265,9 +275,9 @@
             100% { transform: translateY(-50%); }
         }
 
-        /* 底部橫向電視新聞跑馬燈 (更新為大字體與慢速) */
+        /* 底部橫向電視新聞跑馬燈 */
         .news-ticker-container {
-            height: 80px; /* 增加高度以容納 45px 字體 */
+            height: 80px; 
             background-color: #111111;
             border-top: 2px solid #222222;
             display: flex;
@@ -279,7 +289,7 @@
         .news-label {
             background-color: #cc0000;
             color: #ffffff;
-            font-size: 36px; /* 稍微放大標籤以平衡視覺 */
+            font-size: 36px;
             font-weight: bold;
             padding: 0 16px;
             height: 100%;
@@ -301,9 +311,9 @@
         .news-text-wrapper {
             display: inline-flex;
             white-space: nowrap;
-            font-size: 45px; /* 更新：字體改為 45px */
+            font-size: 45px; 
             color: #ffffff;
-            animation: hscroll 90s linear infinite; /* 更新：速度改慢，週期為 90 秒 */
+            animation: hscroll 90s linear infinite; 
             padding-left: 10px;
         }
 
@@ -321,9 +331,12 @@
 
     <div class="content-area">
         
+        <!-- 左欄：巴士實時報站系統 -->
         <div class="left-col" id="bus-container">
-            </div>
+            <!-- 巴士路線由 JS 自動生成 -->
+        </div>
 
+        <!-- 右欄：天氣與時間區域 -->
         <div class="right-col">
             
             <div class="time-section">
@@ -365,15 +378,27 @@
     </div>
 
     <script>
-        // 1. 巴士線路核心規格設定
+        // 1. 巴士線路基本資料 (移除了原本寫死的顏色)
         const busRoutesConfig = [
-            { id: '249X', no: '249X', dir: '博康', stop: '青桃樓', bg: '#0066cc', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1' },
-            { id: '42A',  no: '42A',  dir: '西九龍', stop: '青桃樓', bg: '#008833', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1' },
-            { id: '43',   no: '43',   dir: '荃灣西', stop: '青桃樓', bg: '#ff6600', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/43/1' },
-            { id: '49M_TY',no: '49M',  dir: '青衣站', stop: '青富苑', bg: '#7b1fa2', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/333E9F98EEB84849/49M/1' },
-            { id: '49M_KF',no: '49M',  dir: '青富苑', stop: '青衣站', bg: '#c2185b', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/68CD99B45DDE014B/49M/1' },
-            { id: '68E',  no: '68E',  dir: '元朗',   stop: '青衣站', bg: '#00796b', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/83D9B6BE39530EEF/68E/1' },
-            { id: '243M', no: '243M', dir: '荃灣',   stop: '美景花園',bg: '#d32f2f', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1' }
+            { id: '249X', no: '249X', dir: '博康', stop: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1' },
+            { id: '42A',  no: '42A',  dir: '西九龍', stop: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1' },
+            { id: '43',   no: '43',   dir: '荃灣西', stop: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/43/1' },
+            { id: '49M_TY',no: '49M',  dir: '青衣站', stop: '青富苑', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/333E9F98EEB84849/49M/1' },
+            { id: '49M_KF',no: '49M',  dir: '青富苑', stop: '青衣站', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/68CD99B45DDE014B/49M/1' },
+            { id: '68E',  no: '68E',  dir: '元朗',   stop: '青衣站', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/83D9B6BE39530EEF/68E/1' },
+            { id: '243M', no: '243M', dir: '荃灣',   stop: '美景花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1' }
+        ];
+
+        // 專為長者設計的「高對比高可視度」色彩庫，與白字搭配非常清晰
+        const highContrastColors = [
+            '#005bb5', /* 寶石藍 */
+            '#2e7d32', /* 翠綠 */
+            '#d32f2f', /* 鮮紅 */
+            '#e65100', /* 亮橙 */
+            '#6a1b9a', /* 深紫 */
+            '#c2185b', /* 紫紅 */
+            '#00695c', /* 深青 */
+            '#b71c1c'  /* 暗紅 */
         ];
 
         const warningDict = {
@@ -390,17 +415,20 @@
 
         function initBusLayout() {
             const container = document.getElementById('bus-container');
-            container.innerHTML = busRoutesConfig.map(route => `
+            container.innerHTML = busRoutesConfig.map(route => {
+                // 為每個路線隨機抽取一個高對比顏色
+                const randomColor = highContrastColors[Math.floor(Math.random() * highContrastColors.length)];
+                return `
                 <div class="bus-item">
                     <div class="bus-title">
-                        <span class="bus-label" style="background-color: ${route.bg};">${route.no}</span>
+                        <span class="bus-label" style="background-color: ${randomColor};">${route.no}</span>
                         <span>往${route.dir} 📍${route.stop}</span>
                     </div>
                     <div class="bus-times" id="times-${route.id}">
                         <span style="font-size:26px; color:#555555;">正在連線更新...</span>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function updateClock() {
@@ -452,13 +480,14 @@
             }
         }
 
+        // 更新：巴士時間渲染加入 time-block 確保獨立區塊不斷行
         function renderBusTimesHtml(etas) {
             if (etas === null) return `<span style="font-size:26px; color:#bb3333;">資料獲取失敗</span>`;
             if (etas.length === 0) return `<span style="font-size:26px; color:#666666;">現時沒有預計班次</span>`;
             
             return etas.map(eta => {
                 const countdownStyle = eta.mins < 10 ? 'countdown-near' : 'countdown-far';
-                return `<span>${eta.timeStr}<span class="${countdownStyle}">(${eta.mins}分鐘)</span></span>`;
+                return `<span class="time-block">${eta.timeStr}<span class="${countdownStyle}">(${eta.mins}分鐘)</span></span>`;
             }).join('<span class="time-sep">|</span>');
         }
 
@@ -580,11 +609,9 @@
             }
         }
 
-        // 更新：透過 rss2json 繞過 CORS 限制，真實獲取香港電台本地新聞 RSS
         async function fetchRTHKNews() {
             try {
                 const rssUrl = 'https://rthk9.rthk.hk/rthk/news/rss/c_expressnews_clocal.xml';
-                // 這裡使用免費的 rss2json API 來解析 XML 並轉換為 JSON
                 const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
                 
                 const response = await fetch(apiUrl);
@@ -592,7 +619,6 @@
                 
                 let mergedNews = '';
                 if (data && data.items && data.items.length > 0) {
-                    // 擷取最新的 10 條本地新聞
                     const headlines = data.items.slice(0, 10).map(item => `【${item.title}】`);
                     mergedNews = headlines.join(' ｜ ');
                 } else {
@@ -601,7 +627,6 @@
                 
                 const tickerText = document.getElementById('ticker-text');
                 if (tickerText) {
-                    // 雙重渲染實現無縫跑馬燈
                     tickerText.innerHTML = `<span>${mergedNews}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span>${mergedNews}</span>`;
                 }
             } catch (e) {
@@ -633,15 +658,10 @@
             initBusLayout();
             updateClock();
             masterRefreshRoutine();
-            fetchRTHKNews(); // 初始加載新聞
+            fetchRTHKNews(); 
             
-            // 時鐘每秒更新
             setInterval(updateClock, 1000);
-            
-            // 巴士與天氣數據每 30 秒自動刷新
             setInterval(masterRefreshRoutine, 30000);
-            
-            // 更新：新聞數據獨立設定為每 5 分鐘 (300000 毫秒) 刷新一次
             setInterval(fetchRTHKNews, 300000);
         });
     </script>
