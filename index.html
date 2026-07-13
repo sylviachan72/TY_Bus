@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊儀表板</title>
+    <title>1資訊儀表板</title>
     <style>
         /* 全域樣式：黑底、無邊距、禁止雙擊縮放 */
         * {
@@ -292,7 +292,7 @@
 <body>
 
     <!-- 頂部狀態列 -->
-    <div class="top-bar" id="update-timestamp">最後更新：--:--:--（每30秒自動刷新）</div>
+    <div class="top-bar" id="update-timestamp">最後更新：--:--:--（巴士每30秒/天氣新聞每5分鐘刷新）</div>
 
     <!-- 主內容區 -->
     <div class="main-container">
@@ -304,7 +304,7 @@
 
         <!-- 右欄：時間與天氣 -->
         <div class="column right-column">
-            <!-- 時間區塊（已將 AM/PM 調整至左側） -->
+            <!-- 時間區塊 -->
             <div class="time-section">
                 <div class="time-display"><span class="ampm-display" id="live-ampm">上午</span><span id="live-time">00:00</span></div>
                 <div class="date-display" id="live-date">2026年1月1日 星期四</div>
@@ -400,12 +400,13 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // 更新頂部時間戳記（主要由頻繁更新的巴士觸發）
         function setUpdateTimestamp() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0');
             const m = String(now.getMinutes()).padStart(2, '0');
             const s = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('update-timestamp').innerText = `最後更新：${h}:${m}:${s}（每30秒自動刷新）`;
+            document.getElementById('update-timestamp').innerText = `最後更新：${h}:${m}:${s}（巴士每30秒/天氣新聞每5分鐘刷新）`;
         }
 
         // --- 獲取九巴實時數據並處理換行 ---
@@ -549,16 +550,23 @@
             }
         }
 
-        function refreshBusAndWeather() {
-            fetchBusETA();
-            fetchWeather();
-            setUpdateTimestamp();
-        }
-
-        refreshBusAndWeather();
+        // --- 核心定時器控制中心 ---
+        
+        // 1. 初始化首次全載入
+        fetchBusETA();
+        fetchWeather();
         fetchNews();
-        setInterval(refreshBusAndWeather, 30000);
-        setInterval(fetchNews, 300000);
+        setUpdateTimestamp();
+
+        // 2. 獨立設定刷新頻率
+        setInterval(() => {
+            fetchBusETA();
+            setUpdateTimestamp(); // 每次更新巴士時順便更新頂部的秒數狀態
+        }, 30000); // 巴士：每 30 秒更新
+
+        setInterval(fetchWeather, 300000); // 天氣：改為每 5 分鐘 (300000ms) 更新
+        setInterval(fetchNews, 300000);    // 新聞：每 5 分鐘 (300000ms) 更新
+
     </script>
 </body>
 </html>
