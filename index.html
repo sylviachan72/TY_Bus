@@ -211,11 +211,6 @@
             width: 100%;
             animation: scrollUp 20s linear infinite;
         }
-        /* 特別天氣提示：觸碰暫停 (hover對應滑鼠, active對應觸控) */
-        .swt-marquee-content:hover, 
-        .swt-marquee-content:active {
-            animation-play-state: paused;
-        }
         @keyframes scrollUp {
             0% { transform: translateY(100%); }
             100% { transform: translateY(-100%); }
@@ -263,27 +258,40 @@
             font-size: 45px;
             color: #FFFFFF;
             font-weight: bold;
-            animation: marqueeLeft 60s linear infinite; /* 預設 60 秒，會由 JS 覆寫 */
+            animation: marqueeLeft 120s linear infinite; /* 預設 120 秒，會由 JS 覆寫 */
             padding-left: 20%;
-        }
-        /* 新聞跑馬燈：觸碰暫停 (hover對應滑鼠, active對應觸控) */
-        .news-marquee-content:hover, 
-        .news-marquee-content:active {
-            animation-play-state: paused;
         }
         @keyframes marqueeLeft {
             0% { transform: translate3d(0, 0, 0); }
             100% { transform: translate3d(-100%, 0, 0); }
         }
+
+        /* ======= 解決觸控黏性懸停的 CSS 設定 ======= */
+        /* 只有在支援滑鼠的裝置上，才使用 hover 暫停，避免平板手機觸控放手後卡住 */
+        @media (hover: hover) {
+            .swt-marquee-content:hover, 
+            .news-marquee-content:hover {
+                animation-play-state: paused !important;
+            }
+        }
+        /* 所有裝置按下期間暫停 */
+        .swt-marquee-content:active, 
+        .news-marquee-content:active {
+            animation-play-state: paused !important;
+        }
     </style>
 </head>
 <body>
 
+    <!-- 頂部更新時間 -->
     <div class="top-bar" id="last-update">最後更新：--:--:--（每30秒自動刷新）</div>
 
+    <!-- 主內容區 -->
     <div class="main-container">
         
+        <!-- 左欄：巴士實時報站 -->
         <div class="column left-column" id="bus-column">
+            <!-- 249X -->
             <div class="bus-route-box" id="route-249X">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #0056B3;">249X</span>
@@ -292,6 +300,7 @@
                 <div class="bus-eta-row" id="eta-249X">載入中...</div>
             </div>
 
+            <!-- 42A -->
             <div class="bus-route-box" id="route-42A">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #28A745;">42A</span>
@@ -300,6 +309,7 @@
                 <div class="bus-eta-row" id="eta-42A">載入中...</div>
             </div>
 
+            <!-- 43 -->
             <div class="bus-route-box" id="route-43">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #FD7E14;">43</span>
@@ -308,6 +318,7 @@
                 <div class="bus-eta-row" id="eta-43">載入中...</div>
             </div>
 
+            <!-- 49M 往青衣站 -->
             <div class="bus-route-box" id="route-49M-ty">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #6F42C1;">49M</span>
@@ -316,6 +327,7 @@
                 <div class="bus-eta-row" id="eta-49M-ty">載入中...</div>
             </div>
 
+            <!-- 49M 往青富苑 -->
             <div class="bus-route-box" id="route-49M-kf">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #E83E8C;">49M</span>
@@ -324,6 +336,7 @@
                 <div class="bus-eta-row" id="eta-49M-kf">載入中...</div>
             </div>
 
+            <!-- 68E -->
             <div class="bus-route-box" id="route-68E">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #20C997;">68E</span>
@@ -332,6 +345,7 @@
                 <div class="bus-eta-row" id="eta-68E">載入中...</div>
             </div>
 
+            <!-- 243M -->
             <div class="bus-route-box" id="route-243M">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #17A2B8;">243M</span>
@@ -341,27 +355,35 @@
             </div>
         </div>
 
+        <!-- 右欄：時間與天氣 -->
         <div class="column right-column">
+            <!-- 時間區塊 -->
             <div class="time-box">
                 <span class="ampm-text" id="time-ampm">上午</span><span class="time-text" id="time-clock">00:00</span>
             </div>
+            <!-- 日期區塊 -->
             <div class="date-text" id="date-display">2026年7月13日 星期一</div>
 
+            <!-- 天氣資訊數據欄 -->
             <div class="weather-info-container">
+                <!-- 第一行：圖標、青衣現時溫度、現時濕度 -->
                 <div class="weather-row1">
                     <img src="" alt="天氣" class="weather-icon" id="wx-icon" style="display:none;">
                     <span id="current-temp">--°C(青衣)</span>
                     <span id="current-humidity" style="margin-left: 15px;">💧--%</span>
                 </div>
+                <!-- 第二行：當天最低溫、最高溫（零縫隙緊貼） -->
                 <div class="weather-row2">
                     <span class="temp-low" id="forecast-low">❄️--°C</span><span class="temp-high" id="forecast-high">☀️--°C</span>
                 </div>
             </div>
 
+            <!-- 天氣警告區塊 -->
             <div class="warning-box" id="warning-container">
                 <div class="no-warning">正在獲取警告資訊...</div>
             </div>
 
+            <!-- 特別天氣提示區塊 -->
             <div class="swt-box" id="swt-container">
                 <div class="no-swt">正在獲取特別天氣提示...</div>
             </div>
@@ -369,6 +391,7 @@
 
     </div>
 
+    <!-- 底部：電視新聞流動跑馬燈 -->
     <div class="bottom-news-bar">
         <div class="news-label">即時新聞</div>
         <div class="news-marquee-container">
@@ -530,7 +553,6 @@
                 
                 let warningBadges = [];
                 
-                // 定義需要特別對應對齊的子類型文字字典
                 const warningMap = {
                     'WFIREY': '黃色火災危險警告',
                     'WFIRER': '紅色火災危險警告',
@@ -618,8 +640,8 @@
                     const newsElement = document.getElementById('news-marquee-text');
                     newsElement.innerHTML = marqueeText;
                     
-                    // 【已修改】大幅放慢滾動速度。公式: (新聞數量 x 4秒)。最少跑 60 秒
-                    const speed = Math.max(60, Math.floor(allTitles.length * 4));
+                    // 【再次大幅放慢】每條新聞算作 8 秒，最低保底跑 120 秒
+                    const speed = Math.max(120, Math.floor(allTitles.length * 8));
                     newsElement.style.animationDuration = `${speed}s`;
                 } else {
                     document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
@@ -629,6 +651,36 @@
                 document.getElementById('news-marquee-text').innerText = "新聞伺服器連線異常，重試中...";
             }
         }
+
+        // ====== 解決觸控黏性懸停 (Sticky Hover) 的專用程式碼 ======
+        function setupTouchPause() {
+            const containers = [
+                { parent: document.getElementById('swt-container'), selector: '.swt-marquee-content' },
+                { parent: document.querySelector('.bottom-news-bar'), selector: '.news-marquee-content' }
+            ];
+
+            containers.forEach(item => {
+                if (item.parent) {
+                    // 手指碰到螢幕時 -> 強制暫停
+                    item.parent.addEventListener('touchstart', () => {
+                        const content = item.parent.querySelector(item.selector);
+                        if (content) content.style.animationPlayState = 'paused';
+                    }, { passive: true });
+
+                    // 手指離開或滑走時 -> 強制恢復
+                    const resumePlay = () => {
+                        const content = item.parent.querySelector(item.selector);
+                        if (content) content.style.animationPlayState = 'running';
+                    };
+
+                    item.parent.addEventListener('touchend', resumePlay);
+                    item.parent.addEventListener('touchcancel', resumePlay);
+                }
+            });
+        }
+
+        // 啟動觸控監聽
+        setupTouchPause();
 
         // 初始化定時器排程
         updateTime();
