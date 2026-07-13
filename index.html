@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>巴士天氣資訊板</title>
+    <title>巴士天氣資訊板1</title>
     <style>
         /* 全局重置與深色背景 */
         * {
@@ -187,33 +187,33 @@
             font-size: 30px;
         }
 
-        /* 特別天氣提示垂直跑馬燈 */
+        /* ======= 【全新設計】可滑動特別天氣提示 ======= */
         .swt-box {
             width: 100%;
             font-size: 30px;
-            padding: 0 15px;
             text-align: left;
             border-top: 1px solid #111;
             padding-top: 8px;
+            padding-left: 15px;
+            padding-right: 15px;
         }
         .no-swt {
             color: #555555;
             text-align: center;
         }
-        .swt-marquee-container {
+        /* 原生垂直捲動容器 */
+        .swt-scroll-wrapper {
             height: 165px; /* 約5行高度 */
-            overflow: hidden;
+            overflow-y: auto; /* 允許原生上下滑動 */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
             position: relative;
-            width: 100%;
         }
-        .swt-marquee-content {
-            position: absolute;
-            width: 100%;
-            animation: scrollUp 20s linear infinite;
+        .swt-scroll-wrapper::-webkit-scrollbar {
+            display: none; /* 隱藏滑動軸 */
         }
-        @keyframes scrollUp {
-            0% { transform: translateY(100%); }
-            100% { transform: translateY(-100%); }
+        .swt-content {
+            padding-bottom: 10px;
         }
         .swt-p {
             margin-bottom: 8px;
@@ -221,15 +221,15 @@
             color: #FFFFFF; /* 純白色 */
         }
 
-        /* 底部：即時新聞跑馬燈 */
+        /* ======= 【全新設計】可滑動底部即時新聞 ======= */
         .bottom-news-bar {
             height: 65px;
             background-color: #000000;
             position: relative;
             display: flex;
             align-items: center;
-            overflow: hidden;
             flex-shrink: 0;
+            width: 100%;
         }
         .news-label {
             background-color: #FF0000;
@@ -242,56 +242,39 @@
             align-items: center;
             justify-content: center;
             z-index: 10;
-            position: absolute;
-            left: 0;
-            top: 0;
+            min-width: 210px; /* 固定寬度避免被擠壓 */
             box-shadow: 5px 0 10px rgba(0,0,0,0.5);
         }
-        .news-marquee-container {
-            width: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-            padding-left: 210px; /* 留出放標籤的空間 */
+        /* 原生水平捲動容器 */
+        .news-scroll-wrapper {
+            flex: 1;
+            height: 100%;
+            overflow-x: auto; /* 允許原生左右滑動 */
+            display: flex;
+            align-items: center;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .news-scroll-wrapper::-webkit-scrollbar {
+            display: none; /* 隱藏滑動軸 */
         }
         .news-marquee-content {
-            display: inline-block;
             font-size: 45px;
             color: #FFFFFF;
             font-weight: bold;
-            animation: marqueeLeft 120s linear infinite; /* 預設 120 秒，會由 JS 覆寫 */
-            padding-left: 20%;
-        }
-        @keyframes marqueeLeft {
-            0% { transform: translate3d(0, 0, 0); }
-            100% { transform: translate3d(-100%, 0, 0); }
-        }
-
-        /* ======= 解決觸控黏性懸停的 CSS 設定 ======= */
-        /* 只有在支援滑鼠的裝置上，才使用 hover 暫停，避免平板手機觸控放手後卡住 */
-        @media (hover: hover) {
-            .swt-marquee-content:hover, 
-            .news-marquee-content:hover {
-                animation-play-state: paused !important;
-            }
-        }
-        /* 所有裝置按下期間暫停 */
-        .swt-marquee-content:active, 
-        .news-marquee-content:active {
-            animation-play-state: paused !important;
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding-right: 50px; /* 新聞輪迴時的間隔距離 */
         }
     </style>
 </head>
 <body>
 
-    <!-- 頂部更新時間 -->
     <div class="top-bar" id="last-update">最後更新：--:--:--（每30秒自動刷新）</div>
 
-    <!-- 主內容區 -->
     <div class="main-container">
         
-        <!-- 左欄：巴士實時報站 -->
         <div class="column left-column" id="bus-column">
-            <!-- 249X -->
             <div class="bus-route-box" id="route-249X">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #0056B3;">249X</span>
@@ -300,7 +283,6 @@
                 <div class="bus-eta-row" id="eta-249X">載入中...</div>
             </div>
 
-            <!-- 42A -->
             <div class="bus-route-box" id="route-42A">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #28A745;">42A</span>
@@ -309,7 +291,6 @@
                 <div class="bus-eta-row" id="eta-42A">載入中...</div>
             </div>
 
-            <!-- 43 -->
             <div class="bus-route-box" id="route-43">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #FD7E14;">43</span>
@@ -318,7 +299,6 @@
                 <div class="bus-eta-row" id="eta-43">載入中...</div>
             </div>
 
-            <!-- 49M 往青衣站 -->
             <div class="bus-route-box" id="route-49M-ty">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #6F42C1;">49M</span>
@@ -327,7 +307,6 @@
                 <div class="bus-eta-row" id="eta-49M-ty">載入中...</div>
             </div>
 
-            <!-- 49M 往青富苑 -->
             <div class="bus-route-box" id="route-49M-kf">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #E83E8C;">49M</span>
@@ -336,7 +315,6 @@
                 <div class="bus-eta-row" id="eta-49M-kf">載入中...</div>
             </div>
 
-            <!-- 68E -->
             <div class="bus-route-box" id="route-68E">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #20C997;">68E</span>
@@ -345,7 +323,6 @@
                 <div class="bus-eta-row" id="eta-68E">載入中...</div>
             </div>
 
-            <!-- 243M -->
             <div class="bus-route-box" id="route-243M">
                 <div class="bus-header">
                     <span class="bus-badge" style="background-color: #17A2B8;">243M</span>
@@ -355,47 +332,42 @@
             </div>
         </div>
 
-        <!-- 右欄：時間與天氣 -->
         <div class="column right-column">
-            <!-- 時間區塊 -->
             <div class="time-box">
                 <span class="ampm-text" id="time-ampm">上午</span><span class="time-text" id="time-clock">00:00</span>
             </div>
-            <!-- 日期區塊 -->
             <div class="date-text" id="date-display">2026年7月13日 星期一</div>
 
-            <!-- 天氣資訊數據欄 -->
             <div class="weather-info-container">
-                <!-- 第一行：圖標、青衣現時溫度、現時濕度 -->
                 <div class="weather-row1">
                     <img src="" alt="天氣" class="weather-icon" id="wx-icon" style="display:none;">
                     <span id="current-temp">--°C(青衣)</span>
                     <span id="current-humidity" style="margin-left: 15px;">💧--%</span>
                 </div>
-                <!-- 第二行：當天最低溫、最高溫（零縫隙緊貼） -->
                 <div class="weather-row2">
                     <span class="temp-low" id="forecast-low">❄️--°C</span><span class="temp-high" id="forecast-high">☀️--°C</span>
                 </div>
             </div>
 
-            <!-- 天氣警告區塊 -->
             <div class="warning-box" id="warning-container">
                 <div class="no-warning">正在獲取警告資訊...</div>
             </div>
 
-            <!-- 特別天氣提示區塊 -->
-            <div class="swt-box" id="swt-container">
-                <div class="no-swt">正在獲取特別天氣提示...</div>
+            <div class="swt-box">
+                <div class="swt-scroll-wrapper" id="swt-scroll-wrapper">
+                    <div class="swt-content content-1" id="swt-content-1">正在獲取特別天氣提示...</div>
+                    <div class="swt-content content-2" id="swt-content-2"></div>
+                </div>
             </div>
         </div>
 
     </div>
 
-    <!-- 底部：電視新聞流動跑馬燈 -->
     <div class="bottom-news-bar">
         <div class="news-label">即時新聞</div>
-        <div class="news-marquee-container">
-            <div class="news-marquee-content" id="news-marquee-text">正在加載香港電台即時新聞綜合頻道...</div>
+        <div class="news-scroll-wrapper" id="news-scroll-wrapper">
+            <div class="news-marquee-content content-1" id="news-content-1">正在加載香港電台即時新聞綜合頻道...</div>
+            <div class="news-marquee-content content-2" id="news-content-2"></div>
         </div>
     </div>
 
@@ -589,22 +561,19 @@
                     warnContainer.innerHTML = `<div class="no-warning">現時沒有生效的警告</div>`;
                 }
 
-                // 4. 特別天氣提示動態跑馬燈 (swt)
+                // 4. 特別天氣提示 (填入支援無限滑動的雙層結構)
                 const swtResponse = await fetch(WEATHER_URLS.swt);
                 const swtData = await swtResponse.json();
-                const swtContainer = document.getElementById('swt-container');
-
                 if (swtData && swtData.swt && swtData.swt.length > 0) {
-                    let swtHtml = `<div class="swt-marquee-container"><div class="swt-marquee-content">`;
+                    let swtHtml = '';
                     swtData.swt.forEach(tip => {
-                        if (tip.desc) {
-                            swtHtml += `<p class="swt-p">${tip.desc}</p>`;
-                        }
+                        if (tip.desc) swtHtml += `<p class="swt-p">${tip.desc}</p>`;
                     });
-                    swtHtml += `</div></div>`;
-                    swtContainer.innerHTML = swtHtml;
+                    document.getElementById('swt-content-1').innerHTML = swtHtml;
+                    document.getElementById('swt-content-2').innerHTML = swtHtml; // 複製一份做無限循環
                 } else {
-                    swtContainer.innerHTML = `<div class="no-swt">現時沒有特別天氣提示</div>`;
+                    document.getElementById('swt-content-1').innerHTML = `<div class="no-swt">現時沒有特別天氣提示</div>`;
+                    document.getElementById('swt-content-2').innerHTML = ''; // 沒有提示時不需要第二層
                 }
 
             } catch (error) {
@@ -612,7 +581,7 @@
             }
         }
 
-        // 獲取與混合香港電台新聞的函數
+        // 獲取與混合香港電台新聞的函數 (填入支援無限滑動的雙層結構)
         async function fetchNews() {
             try {
                 let allTitles = [];
@@ -635,58 +604,101 @@
                 await Promise.all(requests);
 
                 if (allTitles.length > 0) {
-                    // 打散混合同步顯示，用雙菱形標誌分隔
-                    const marqueeText = allTitles.join(' &nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;&nbsp;&nbsp; ');
-                    const newsElement = document.getElementById('news-marquee-text');
-                    newsElement.innerHTML = marqueeText;
-                    
-                    // 【再次大幅放慢】每條新聞算作 8 秒，最低保底跑 120 秒
-                    const speed = Math.max(120, Math.floor(allTitles.length * 8));
-                    newsElement.style.animationDuration = `${speed}s`;
+                    const marqueeText = allTitles.join(' &nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;&nbsp;&nbsp; ') + ' &nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;&nbsp;&nbsp; ';
+                    document.getElementById('news-content-1').innerHTML = marqueeText;
+                    document.getElementById('news-content-2').innerHTML = marqueeText; // 複製一份做無限循環
                 } else {
-                    document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
+                    document.getElementById('news-content-1').innerText = "暫時未能讀取最新新聞，請稍後再試。";
+                    document.getElementById('news-content-2').innerText = "";
                 }
             } catch (error) {
                 console.error("Error fetching news:", error);
-                document.getElementById('news-marquee-text').innerText = "新聞伺服器連線異常，重試中...";
+                document.getElementById('news-content-1').innerText = "新聞伺服器連線異常，重試中...";
+                document.getElementById('news-content-2').innerText = "";
             }
         }
 
-        // ====== 解決觸控黏性懸停 (Sticky Hover) 的專用程式碼 ======
-        function setupTouchPause() {
-            const containers = [
-                { parent: document.getElementById('swt-container'), selector: '.swt-marquee-content' },
-                { parent: document.querySelector('.bottom-news-bar'), selector: '.news-marquee-content' }
-            ];
 
-            containers.forEach(item => {
-                if (item.parent) {
-                    // 手指碰到螢幕時 -> 強制暫停
-                    item.parent.addEventListener('touchstart', () => {
-                        const content = item.parent.querySelector(item.selector);
-                        if (content) content.style.animationPlayState = 'paused';
-                    }, { passive: true });
+        // ==========================================
+        // 【全新】智能互動與平滑滾動引擎 (取代 CSS 動畫)
+        // ==========================================
+        const ScrollEngine = {
+            swt: { el: null, isHovered: false, accum: 0, speed: 0.3 }, // 0.3 = 極慢垂直速度
+            news: { el: null, isHovered: false, accum: 0, speed: 0.6 } // 0.6 = 極慢水平速度
+        };
 
-                    // 手指離開或滑走時 -> 強制恢復
-                    const resumePlay = () => {
-                        const content = item.parent.querySelector(item.selector);
-                        if (content) content.style.animationPlayState = 'running';
-                    };
+        function initSmartScroll() {
+            ScrollEngine.swt.el = document.getElementById('swt-scroll-wrapper');
+            ScrollEngine.news.el = document.getElementById('news-scroll-wrapper');
+            
+            ['swt', 'news'].forEach(type => {
+                const state = ScrollEngine[type];
+                if(!state.el) return;
 
-                    item.parent.addEventListener('touchend', resumePlay);
-                    item.parent.addEventListener('touchcancel', resumePlay);
-                }
+                // 暫停與播放邏輯
+                const pause = () => state.isHovered = true;
+                const play = () => { setTimeout(() => state.isHovered = false, 1200); }; // 放手後等 1.2 秒才繼續跑
+                
+                // 綁定所有可能觸發暫停的事件 (滑鼠與手指觸控)
+                state.el.addEventListener('mouseenter', pause);
+                state.el.addEventListener('mouseleave', play);
+                state.el.addEventListener('touchstart', pause, {passive: true});
+                state.el.addEventListener('touchend', play, {passive: true});
+                state.el.addEventListener('touchcancel', play, {passive: true});
+
+                // 監聽原生的滑動事件，確保使用者自己滑過頭時也能無縫接軌
+                state.el.addEventListener('scroll', () => {
+                    const c1 = state.el.querySelector('.content-1');
+                    if(!c1) return;
+                    
+                    if (type === 'news' && c1.offsetWidth > 0) {
+                        if (state.el.scrollLeft >= c1.offsetWidth) {
+                            state.el.scrollLeft -= c1.offsetWidth; // 滑過頭就拉回原點，完美輪迴
+                        }
+                    } else if (type === 'swt' && c1.offsetHeight > 50) {
+                        if (state.el.scrollTop >= c1.offsetHeight) {
+                            state.el.scrollTop -= c1.offsetHeight;
+                        }
+                    }
+                }, {passive: true});
             });
+
+            // 高幀率平滑渲染迴圈 (每秒 60 次更新)
+            function renderLoop() {
+                ['swt', 'news'].forEach(type => {
+                    const state = ScrollEngine[type];
+                    if(!state.isHovered && state.el) {
+                        state.accum += state.speed;
+                        
+                        // 累積滿 1 像素才推進，確保低速下不會抖動
+                        if(state.accum >= 1) {
+                            const steps = Math.floor(state.accum);
+                            state.accum -= steps;
+                            if (type === 'news') {
+                                state.el.scrollLeft += steps; // 水平推進
+                            } else {
+                                state.el.scrollTop += steps; // 垂直推進
+                            }
+                        }
+                    }
+                });
+                requestAnimationFrame(renderLoop);
+            }
+            requestAnimationFrame(renderLoop); // 啟動引擎
         }
 
-        // 啟動觸控監聽
-        setupTouchPause();
+        // ==========================================
+        // 系統啟動排程
+        // ==========================================
+        
+        // 啟動智能捲動引擎
+        initSmartScroll();
 
-        // 初始化定時器排程
+        // 初始化定時器
         updateTime();
         setInterval(updateTime, 1000); // 時鐘秒針每秒更新
 
-        // 巴士、時間、天氣：每30秒全面重刷一次
+        // 巴士、時間、天氣：每 30 秒全面重刷一次
         refreshAllBuses();
         fetchWeather();
         setInterval(() => {
@@ -694,7 +706,7 @@
             fetchWeather();
         }, 30000);
 
-        // 即時新聞：每5分鐘更新一次
+        // 即時新聞：每 5 分鐘更新一次
         fetchNews();
         setInterval(fetchNews, 300000);
 
