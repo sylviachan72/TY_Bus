@@ -222,7 +222,7 @@
         .swt-p {
             margin-bottom: 8px;
             line-height: 1.1;
-            color: #FFFFFF; /* 改回白色 */
+            color: #FFFFFF; /* 已改回純白色 */
         }
 
         /* 底部：即時新聞跑馬燈 */
@@ -399,46 +399,6 @@
 
         // 【更新】使用更穩定的 RSS to JSON API 服務取代原本的 CORS_PROXY
         const RSS2JSON_API = "https://api.rss2json.com/v1/api.json?rss_url=";
-
-        // 【更新】獲取與混合香港電台新聞的函數
-        async function fetchNews() {
-            try {
-                let allTitles = [];
-                
-                // 異步平行請求所有 RSS 頻道
-                const requests = NEWS_RSS_URLS.map(url => 
-                    fetch(RSS2JSON_API + encodeURIComponent(url))
-                        .then(res => res.json())
-                        .then(data => {
-                            // 確認 API 回傳成功且包含新聞項目
-                            if (data.status === 'ok' && data.items) {
-                                data.items.forEach(item => {
-                                    if (item.title) allTitles.push(item.title.trim());
-                                });
-                            }
-                        })
-                        .catch(e => console.error("單一頻道讀取失敗:", e))
-                );
-
-                await Promise.all(requests);
-
-                if (allTitles.length > 0) {
-                    // 打散混合同步顯示，用雙菱形標誌分隔
-                    const marqueeText = allTitles.join(' &nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;&nbsp;&nbsp; ');
-                    const newsElement = document.getElementById('news-marquee-text');
-                    newsElement.innerHTML = marqueeText;
-                    
-                    // 動態計算長度來優化滾動速度 (確保字多時不會跑太快)
-                    const speed = Math.max(30, Math.floor(allTitles.length * 1.5));
-                    newsElement.style.animationDuration = `${speed}s`;
-                } else {
-                    document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
-                }
-            } catch (error) {
-                console.error("Error fetching news:", error);
-                document.getElementById('news-marquee-text').innerText = "新聞伺服器連線異常，重試中...";
-            }
-        }
 
         // 更新系統時間與日期
         function updateTime() {
@@ -624,24 +584,24 @@
             }
         }
 
-        // 獲取與混合香港電台的 5 個 RSS 頻道新聞
+        // 【更新】獲取與混合香港電台新聞的函數
         async function fetchNews() {
             try {
                 let allTitles = [];
                 
                 // 異步平行請求所有 RSS 頻道
                 const requests = NEWS_RSS_URLS.map(url => 
-                    fetch(CORS_PROXY + encodeURIComponent(url))
-                        .then(res => res.text())
-                        .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+                    fetch(RSS2JSON_API + encodeURIComponent(url))
+                        .then(res => res.json())
                         .then(data => {
-                            const items = data.querySelectorAll("item");
-                            items.forEach(item => {
-                                const title = item.querySelector("title")?.textContent;
-                                if (title) allTitles.push(title.trim());
-                            });
+                            // 確認 API 回傳成功且包含新聞項目
+                            if (data.status === 'ok' && data.items) {
+                                data.items.forEach(item => {
+                                    if (item.title) allTitles.push(item.title.trim());
+                                });
+                            }
                         })
-                        .catch(e => console.error("RSS fetch error:", e))
+                        .catch(e => console.error("單一頻道讀取失敗:", e))
                 );
 
                 await Promise.all(requests);
@@ -649,17 +609,18 @@
                 if (allTitles.length > 0) {
                     // 打散混合同步顯示，用雙菱形標誌分隔
                     const marqueeText = allTitles.join(' &nbsp;&nbsp;&nbsp;&nbsp;◇&nbsp;&nbsp;&nbsp;&nbsp; ');
-                    document.getElementById('news-marquee-text').innerHTML = marqueeText;
+                    const newsElement = document.getElementById('news-marquee-text');
+                    newsElement.innerHTML = marqueeText;
                     
-                    // 動態計算長度來優化滾動速度 (每100字約增加1.5秒，保持平滑適中的速度)
+                    // 動態計算長度來優化滾動速度 (確保字多時不會跑太快)
                     const speed = Math.max(30, Math.floor(allTitles.length * 1.5));
-                    document.getElementById('news-marquee-text').style.animationDuration = `${speed}s`;
+                    newsElement.style.animationDuration = `${speed}s`;
                 } else {
-                    document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞。";
+                    document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
                 }
             } catch (error) {
                 console.error("Error fetching news:", error);
-                document.getElementById('news-marquee-text').innerText = "即時新聞連線伺服器慢，重試中...";
+                document.getElementById('news-marquee-text').innerText = "新聞伺服器連線異常，重試中...";
             }
         }
 
