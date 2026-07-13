@@ -612,9 +612,9 @@
                     const newsElement = document.getElementById('news-marquee-text');
                     newsElement.innerHTML = marqueeText;
                     
-                    // 動態計算長度來優化滾動速度 (確保字多時不會跑太快)
-                    const speed = Math.max(30, Math.floor(allTitles.length * 1.5));
-                    newsElement.style.animationDuration = `${speed}s`;
+  // 【修改】動態計算長度來優化滾動速度 (每條新聞給予更多時間，大幅放慢整體速度)
+const speed = Math.max(60, Math.floor(allTitles.length * 4)); 
+                  newsElement.style.animationDuration = `${speed}s`;
                 } else {
                     document.getElementById('news-marquee-text').innerText = "暫時未能讀取最新新聞，請稍後再試。";
                 }
