@@ -98,18 +98,26 @@
             color: #FFFFFF;
         }
 
-        /* 巴士班次列表外框 */
+        /* 關鍵修改：允許單元換行，但單元內部絕不換行 */
         .bus-eta-list {
             font-size: 32px;
             font-weight: bold;
             color: #FFFFFF;
             line-height: 1.3;
+            display: flex;
+            flex-wrap: wrap; /* 允許整組班次換行 */
+            align-items: center;
         }
 
-        /* 核心修正：確保單一班次與分隔號緊貼，且絕對不跨行斷開 */
-        .eta-block {
+        .eta-unit {
+            white-space: nowrap; /* 核心：防止時間和倒數分鐘跨行斷開 */
             display: inline-block;
-            white-space: nowrap;
+        }
+
+        .eta-separator {
+            color: #FFFFFF;
+            padding: 0 1px; /* 極致緊湊，減少空格 */
+            display: inline-block;
         }
 
         .eta-now {
@@ -367,10 +375,7 @@
             'TC1': '一號戒備信號', 'TC3': '三號強風信號',
             'TC8NE': '八號東北烈風或暴風信號', 'TC8SE': '八號東南烈風或暴風信號',
             'TC8SW': '八號西南烈風或暴風信號', 'TC8NW': '八號西北烈風或暴風信號',
-            'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號',
-            'WMSGNL': '強烈季候風信號', 'WFRST': '霜凍警告', 'WFNTS': '新界北部水浸特別報告',
-            'WL': '山泥傾瀉警告', 'WTMW': '雷暴警告', 'WCOLD': '寒冷天氣警告', 'WHOT': '酷熱天氣警告',
-            'WTS': '海嘯警告'
+            'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號'
         };
 
         // --- 時鐘邏輯 ---
@@ -402,7 +407,7 @@
             document.getElementById('update-timestamp').innerText = `最後更新：${h}:${m}:${s}（每30秒自動刷新）`;
         }
 
-        // --- 獲取九巴數據 (修正自動換行與精確阻斷) ---
+        // --- 獲取九巴實時數據並處理換行 ---
         async function fetchBusETA() {
             const busContainer = document.getElementById('bus-container');
             let htmlContent = '';
@@ -412,7 +417,7 @@
 
             results.forEach((result, index) => {
                 const config = BUS_CONFIG[index];
-                let etaHtml = '<span class="eta-block">未有班次</span>';
+                let etaHtml = '<div style="font-size: 28px; color: #666666;">未有班次</div>';
 
                 if (result.status === 'fulfilled' && result.value && result.value.data) {
                     const validEtas = result.value.data
@@ -427,17 +432,16 @@
                             const diffMinutes = Math.max(0, Math.floor((etaTime - now) / 60000));
                             const timeFormatted = String(etaTime.getHours()).padStart(2, '0') + ':' + String(etaTime.getMinutes()).padStart(2, '0');
                             
-                            let timeContent = '';
+                            let timeBody = '';
                             if (diffMinutes < 10) {
-                                timeContent = `${timeFormatted}<span class="eta-now">(${diffMinutes}分鐘)</span>`;
+                                timeBody = `${timeFormatted}<span class="eta-now">(${diffMinutes}分鐘)</span>`;
                             } else {
-                                timeContent = `${timeFormatted}(${diffMinutes}分鐘)`;
+                                timeBody = `${timeFormatted}(${diffMinutes}分鐘)`;
                             }
                             
-                            // 分隔號緊隨在班次區塊內部尾端，防止分隔號單獨斷行
-                            const separator = idx < validEtas.length - 1 ? '|' : '';
-                            
-                            return `<span class="eta-block">${timeContent}${separator}</span>`;
+                            // 用 <span> 包裹單個班次，並給予不可分割屬性。僅在非最後一項後加上分隔線
+                            const separator = (idx < validEtas.length - 1) ? '<span class="eta-separator">|</span>' : '';
+                            return `<span class="eta-unit">${timeBody}</span>${separator}`;
                         }).join('');
                     }
                 }
@@ -456,7 +460,7 @@
             busContainer.innerHTML = htmlContent;
         }
 
-        // --- 天氣數據抓取 ---
+        // --- 獲取天文台天氣 ---
         async function fetchWeather() {
             try {
                 const resRhr = await fetch(WX_URLS.rhrread);
@@ -465,10 +469,9 @@
                 if (dataRhr) {
                     const tyTempData = dataRhr.temperature.data.find(item => item.place === '青衣');
                     if (tyTempData) document.getElementById('ty-temp').innerText = `${tyTempData.value}°C`;
-                    if (dataRhr.humidity && dataRhr.humidity.data.length > 0) {
-                        document.getElementById('hk-humidity').innerText = `${dataRhr.humidity.data[0].value}%`;
-                    }
-                    if (dataRhr.icon && dataRhr.icon.length > 0) {
+                    if (dataRhr.humidity?.data?.[0]) document.getElementById('hk-humidity').innerText = `${dataRhr.humidity.data[0].value}%`;
+                    
+                    if (dataRhr.icon?.[0]) {
                         const iconEl = document.getElementById('wx-icon');
                         iconEl.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${dataRhr.icon[0]}.png`;
                         iconEl.style.display = 'inline-block';
@@ -477,7 +480,7 @@
 
                 const resFnd = await fetch(WX_URLS.fnd);
                 const dataFnd = await resFnd.json();
-                if (dataFnd && dataFnd.weatherForecast && dataFnd.weatherForecast.length > 0) {
+                if (dataFnd?.weatherForecast?.[0]) {
                     document.getElementById('forecast-min').innerText = dataFnd.weatherForecast[0].forecastMintemp.value;
                     document.getElementById('forecast-max').innerText = dataFnd.weatherForecast[0].forecastMaxtemp.value;
                 }
@@ -496,8 +499,7 @@
                         }
                     });
                     warnHtml += '</div>';
-                    warningBlock.innerHTML = (warnHtml === '<div class="warning-tag-container"></div>') 
-                        ? '<div class="info-empty">現時沒有生效的警告</div>' : warnHtml;
+                    warningBlock.innerHTML = (warnHtml === '<div class="warning-tag-container"></div>') ? '<div class="info-empty">現時沒有生效的警告</div>' : warnHtml;
                 } else {
                     warningBlock.innerHTML = '<div class="info-empty">現時沒有生效的警告</div>';
                 }
@@ -506,28 +508,24 @@
                 const dataSwt = await resSwt.json();
                 const swtBlock = document.getElementById('swt-block');
 
-                if (dataSwt && dataSwt.swt && dataSwt.swt.length > 0) {
+                if (dataSwt?.swt?.length > 0) {
                     let swtListHtml = '';
-                    dataSwt.swt.forEach((item, index) => {
-                        swtListHtml += `<div>${index + 1}. ${item.desc}</div>`;
-                    });
+                    dataSwt.swt.forEach((item, index) => { swtListHtml += `<div>${index + 1}. ${item.desc}</div>`; });
                     swtBlock.innerHTML = `
                         <div class="swt-marquee-box">
                             <div class="swt-marquee-content">
-                                <div>${swtListHtml}</div>
-                                <div>${swtListHtml}</div>
+                                <div class="swt-real-text">${swtListHtml}</div>
+                                <div class="swt-real-text">${swtListHtml}</div>
                             </div>
                         </div>
                     `;
                 } else {
                     swtBlock.innerHTML = '<div class="info-empty">現時沒有特別天氣提示</div>';
                 }
-            } catch (error) {
-                console.error(error);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // --- 新聞數據抓取 ---
+        // --- 獲取港台新聞 ---
         async function fetchNews() {
             const newsMarquee = document.getElementById('news-marquee');
             let allNewsItems = [];
@@ -536,7 +534,7 @@
             const results = await Promise.all(promises);
 
             results.forEach(data => {
-                if (data && data.items) {
+                if (data?.items) {
                     data.items.forEach(item => { if (item.title) allNewsItems.push(item.title.trim()); });
                 }
             });
@@ -544,9 +542,10 @@
             if (allNewsItems.length > 0) {
                 const uniqueNews = [...new Set(allNewsItems)];
                 newsMarquee.innerHTML = uniqueNews.join(' &nbsp;&nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp;&nbsp; ');
-                newsMarquee.style.animationDuration = `${Math.max(90, Math.floor(newsMarquee.innerText.length * 0.4))}s`;
+                const dynamicDuration = Math.max(90, Math.floor(newsMarquee.innerText.length * 0.4)); 
+                newsMarquee.style.animationDuration = `${dynamicDuration}s`;
             } else {
-                newsMarquee.innerText = '暫時未能取得最新新聞新聞。';
+                newsMarquee.innerText = '暫時未能取得最新新聞。';
             }
         }
 
