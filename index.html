@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>儀表板2</title>
+    <title>資訊儀表板</title>
     <style>
         /* 全域樣式：黑底、無邊距、禁止雙擊縮放 */
         * {
@@ -98,25 +98,25 @@
             color: #FFFFFF;
         }
 
-        /* 關鍵修改：允許單元換行，但單元內部絕不換行 */
+        /* 班次整組換行，內部絕不跨行斷開 */
         .bus-eta-list {
             font-size: 32px;
             font-weight: bold;
             color: #FFFFFF;
             line-height: 1.3;
             display: flex;
-            flex-wrap: wrap; /* 允許整組班次換行 */
+            flex-wrap: wrap;
             align-items: center;
         }
 
         .eta-unit {
-            white-space: nowrap; /* 核心：防止時間和倒數分鐘跨行斷開 */
+            white-space: nowrap;
             display: inline-block;
         }
 
         .eta-separator {
             color: #FFFFFF;
-            padding: 0 1px; /* 極致緊湊，減少空格 */
+            padding: 0 1px;
             display: inline-block;
         }
 
@@ -137,10 +137,11 @@
             line-height: 1.0;
         }
 
+        /* 上下午在左側的樣式調整 */
         .ampm-display {
             font-size: 40px;
             font-weight: bold;
-            margin-left: 5px;
+            margin-right: 12px; /* 與右側數字時間保持微小間距 */
         }
 
         .date-display {
@@ -219,7 +220,7 @@
 
         /* 特別天氣提示垂直跑馬燈 */
         .swt-marquee-box {
-            height: 140px; /* 約展現4行的高度 */
+            height: 140px;
             overflow: hidden;
             position: relative;
             width: 100%;
@@ -279,7 +280,7 @@
             font-weight: bold;
             color: #FFFFFF;
             padding-left: 100%;
-            animation: scrollLeft 90s linear infinite; /* 極慢速方便長者閱讀 */
+            animation: scrollLeft 90s linear infinite;
         }
 
         @keyframes scrollLeft {
@@ -303,9 +304,9 @@
 
         <!-- 右欄：時間與天氣 -->
         <div class="column right-column">
-            <!-- 時間區塊 -->
+            <!-- 時間區塊（已將 AM/PM 調整至左側） -->
             <div class="time-section">
-                <div class="time-display"><span id="live-time">00:00</span><span class="ampm-display" id="live-ampm">AM</span></div>
+                <div class="time-display"><span class="ampm-display" id="live-ampm">上午</span><span id="live-time">00:00</span></div>
                 <div class="date-display" id="live-date">2026年1月1日 星期四</div>
             </div>
 
@@ -439,7 +440,6 @@
                                 timeBody = `${timeFormatted}(${diffMinutes}分鐘)`;
                             }
                             
-                            // 用 <span> 包裹單個班次，並給予不可分割屬性。僅在非最後一項後加上分隔線
                             const separator = (idx < validEtas.length - 1) ? '<span class="eta-separator">|</span>' : '';
                             return `<span class="eta-unit">${timeBody}</span>${separator}`;
                         }).join('');
