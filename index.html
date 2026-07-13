@@ -71,8 +71,6 @@
         .bus-route-item {
             border-bottom: 1px solid #333333;
             padding: 10px 0;
-            word-wrap: break-word;
-            word-break: break-all;
         }
         .bus-route-item:last-child {
             border-bottom: none;
@@ -100,11 +98,18 @@
             color: #FFFFFF;
         }
 
+        /* 巴士班次列表外框 */
         .bus-eta-list {
             font-size: 32px;
             font-weight: bold;
             color: #FFFFFF;
             line-height: 1.3;
+        }
+
+        /* 核心修正：確保單一班次與分隔號緊貼，且絕對不跨行斷開 */
+        .eta-block {
+            display: inline-block;
+            white-space: nowrap;
         }
 
         .eta-now {
@@ -223,7 +228,7 @@
 
         @keyframes scrollUp {
             0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); } /* 配合複製內容達至無縫滾動 */
+            100% { transform: translateY(-50%); }
         }
 
         /* --- 底部：新聞跑馬燈樣式 --- */
@@ -285,7 +290,6 @@
         
         <!-- 左欄：巴士實時資訊 -->
         <div class="column left-column" id="bus-container">
-            <!-- 巴士路線清單將由 JavaScript 動態渲染 -->
             <div style="font-size:30px; text-align:center; padding-top:50px;">巴士數據載入中...</div>
         </div>
 
@@ -349,7 +353,6 @@
             swt: 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=swt&lang=tc'
         };
 
-        // 使用公用 RSS2JSON 轉換器解決前端跨網域 (CORS) 抓取 RTHK 新聞的問題
         const NEWS_FEEDS = [
             'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Frthk.hk%2Frthk%2Fnews%2Frss%2Fc_expressnews_clocal.xml',
             'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Frthk.hk%2Frthk%2Fnews%2Frss%2Fc_expressnews_greaterchina.xml',
@@ -358,7 +361,6 @@
             'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Frthk.hk%2Frthk%2Fnews%2Frss%2Fc_expressnews_csport.xml'
         ];
 
-        // 天氣警告代碼轉換表
         const WARNING_MAP = {
             'WFIREY': '黃色火災危險警告', 'WFIRER': '紅色火災危險警告',
             'WRAINA': '黃色暴雨警告信號', 'WRAINR': '紅色暴雨警告信號', 'WRAINB': '黑色暴雨警告信號',
@@ -371,33 +373,27 @@
             'WTS': '海嘯警告'
         };
 
-        // --- 核心時鐘邏輯 (每秒更新) ---
+        // --- 時鐘邏輯 ---
         function updateClock() {
             const now = new Date();
-            
-            // 12小時制時間
             let hours = now.getHours();
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const ampm = hours >= 12 ? '下午' : '上午';
             hours = hours % 12;
-            hours = hours ? hours : 12; // 0點顯示為12
+            hours = hours ? hours : 12;
             
             document.getElementById('live-time').innerText = `${hours}:${minutes}`;
             document.getElementById('live-ampm').innerText = ampm;
 
-            // 日期與星期
             const year = now.getFullYear();
             const month = now.getMonth() + 1;
             const date = now.getDate();
             const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-            const dayOfWeek = days[now.getDay()];
-            
-            document.getElementById('live-date').innerText = `${year}年${month}月${date}日 ${dayOfWeek}`;
+            document.getElementById('live-date').innerText = `${year}年${month}月${date}日 ${days[now.getDay()]}`;
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 格式化頂部更新時間 (24小時制)
         function setUpdateTimestamp() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0');
@@ -406,42 +402,43 @@
             document.getElementById('update-timestamp').innerText = `最後更新：${h}:${m}:${s}（每30秒自動刷新）`;
         }
 
-        // --- 獲取九巴實時報站數據 ---
+        // --- 獲取九巴數據 (修正自動換行與精確阻斷) ---
         async function fetchBusETA() {
             const busContainer = document.getElementById('bus-container');
             let htmlContent = '';
 
-            // 使用 Promise.allSettled 確保單一線路故障不會卡死整個畫面
-            const promises = BUS_CONFIG.map(config => fetch(config.url).then(res => res.json()).catch(err => null));
+            const promises = BUS_CONFIG.map(config => fetch(config.url).then(res => res.json()).catch(() => null));
             const results = await Promise.allSettled(promises);
 
             results.forEach((result, index) => {
                 const config = BUS_CONFIG[index];
-                let etaString = '未有班次';
+                let etaHtml = '<span class="eta-block">未有班次</span>';
 
                 if (result.status === 'fulfilled' && result.value && result.value.data) {
-                    // 過濾出對應方向的排程數據
                     const validEtas = result.value.data
                         .filter(item => item.eta)
                         .sort((a, b) => a.eta_seq - b.eta_seq)
-                        .slice(0, 3); // 僅顯示最近三個班次
+                        .slice(0, 3);
 
                     if (validEtas.length > 0) {
                         const now = new Date();
-                        etaString = validEtas.map(item => {
+                        etaHtml = validEtas.map((item, idx) => {
                             const etaTime = new Date(item.eta);
                             const diffMinutes = Math.max(0, Math.floor((etaTime - now) / 60000));
-                            
-                            // 格式化時間為 HH:MM
                             const timeFormatted = String(etaTime.getHours()).padStart(2, '0') + ':' + String(etaTime.getMinutes()).padStart(2, '0');
                             
-                            // 時間少於 10 分鐘，倒數顯示為芒果黃，其餘為白色
+                            let timeContent = '';
                             if (diffMinutes < 10) {
-                                return `${timeFormatted}<span class="eta-now">(${diffMinutes}分鐘)</span>`;
+                                timeContent = `${timeFormatted}<span class="eta-now">(${diffMinutes}分鐘)</span>`;
                             } else {
-                                return `${timeFormatted}(${diffMinutes}分鐘)`;
+                                timeContent = `${timeFormatted}(${diffMinutes}分鐘)`;
                             }
-                        }).join('|');
+                            
+                            // 分隔號緊隨在班次區塊內部尾端，防止分隔號單獨斷行
+                            const separator = idx < validEtas.length - 1 ? '|' : '';
+                            
+                            return `<span class="eta-block">${timeContent}${separator}</span>`;
+                        }).join('');
                     }
                 }
 
@@ -451,7 +448,7 @@
                             <span class="bus-tag" style="background-color: ${config.tagColor};">${config.id}</span>
                             <span class="bus-meta">${config.dir} 📍${config.stop}</span>
                         </div>
-                        <div class="bus-eta-list">${etaString}</div>
+                        <div class="bus-eta-list">${etaHtml}</div>
                     </div>
                 `;
             });
@@ -459,24 +456,18 @@
             busContainer.innerHTML = htmlContent;
         }
 
-        // --- 獲取香港天文台天氣數據 ---
+        // --- 天氣數據抓取 ---
         async function fetchWeather() {
             try {
-                // 1. 現時天氣報告 (青衣現時溫度、全港濕度、天氣圖標)
                 const resRhr = await fetch(WX_URLS.rhrread);
                 const dataRhr = await resRhr.json();
 
                 if (dataRhr) {
-                    // 尋找青衣的現時溫度
                     const tyTempData = dataRhr.temperature.data.find(item => item.place === '青衣');
-                    if (tyTempData) {
-                        document.getElementById('ty-temp').innerText = `${tyTempData.value}°C`;
-                    }
-                    // 現時濕度
+                    if (tyTempData) document.getElementById('ty-temp').innerText = `${tyTempData.value}°C`;
                     if (dataRhr.humidity && dataRhr.humidity.data.length > 0) {
                         document.getElementById('hk-humidity').innerText = `${dataRhr.humidity.data[0].value}%`;
                     }
-                    // 天氣線條圖標 (HKOWxIconOutline)
                     if (dataRhr.icon && dataRhr.icon.length > 0) {
                         const iconEl = document.getElementById('wx-icon');
                         iconEl.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${dataRhr.icon[0]}.png`;
@@ -484,16 +475,13 @@
                     }
                 }
 
-                // 2. 九天天氣預報 (今日最高、最低溫度)
                 const resFnd = await fetch(WX_URLS.fnd);
                 const dataFnd = await resFnd.json();
                 if (dataFnd && dataFnd.weatherForecast && dataFnd.weatherForecast.length > 0) {
-                    const todayForecast = dataFnd.weatherForecast[0];
-                    document.getElementById('forecast-min').innerText = todayForecast.forecastMintemp.value;
-                    document.getElementById('forecast-max').innerText = todayForecast.forecastMaxtemp.value;
+                    document.getElementById('forecast-min').innerText = dataFnd.weatherForecast[0].forecastMintemp.value;
+                    document.getElementById('forecast-max').innerText = dataFnd.weatherForecast[0].forecastMaxtemp.value;
                 }
 
-                // 3. 天氣警告摘要
                 const resWarn = await fetch(WX_URLS.warnsum);
                 const dataWarn = await resWarn.json();
                 const warningBlock = document.getElementById('warning-block');
@@ -502,27 +490,18 @@
                     let warnHtml = '<div class="warning-tag-container">';
                     Object.keys(dataWarn).forEach(key => {
                         const obj = dataWarn[key];
-                        // 檢查是否有子類型 (如 WRAINB, WFIREY)
                         let displayTitle = WARNING_MAP[obj.code] || WARNING_MAP[key] || obj.name;
-                        
-                        // 若天文台返回的數據包含actionCode為CANCEL，則跳過不顯示
                         if (obj.actionCode !== 'CANCEL') {
                             warnHtml += `<div class="warning-active">${displayTitle}</div>`;
                         }
                     });
                     warnHtml += '</div>';
-                    
-                    // 如果處理完後沒有任何有效發出的警告
-                    if (warnHtml === '<div class="warning-tag-container"></div>') {
-                        warningBlock.innerHTML = '<div class="info-empty">現時沒有生效的警告</div>';
-                    } else {
-                        warningBlock.innerHTML = warnHtml;
-                    }
+                    warningBlock.innerHTML = (warnHtml === '<div class="warning-tag-container"></div>') 
+                        ? '<div class="info-empty">現時沒有生效的警告</div>' : warnHtml;
                 } else {
                     warningBlock.innerHTML = '<div class="info-empty">現時沒有生效的警告</div>';
                 }
 
-                // 4. 特別天氣提示 (SWT)
                 const resSwt = await fetch(WX_URLS.swt);
                 const dataSwt = await resSwt.json();
                 const swtBlock = document.getElementById('swt-block');
@@ -532,73 +511,55 @@
                     dataSwt.swt.forEach((item, index) => {
                         swtListHtml += `<div>${index + 1}. ${item.desc}</div>`;
                     });
-
-                    // 製作從下往上的跑馬燈包裝（複製一份內容以達到無縫循環效果）
                     swtBlock.innerHTML = `
                         <div class="swt-marquee-box">
-                            <div class="swt-marquee-content" id="swt-content">
-                                <div class="swt-real-text">${swtListHtml}</div>
-                                <div class="swt-real-text">${swtListHtml}</div>
+                            <div class="swt-marquee-content">
+                                <div>${swtListHtml}</div>
+                                <div>${swtListHtml}</div>
                             </div>
                         </div>
                     `;
                 } else {
                     swtBlock.innerHTML = '<div class="info-empty">現時沒有特別天氣提示</div>';
                 }
-
             } catch (error) {
-                console.error("抓取天氣數據失敗:", error);
+                console.error(error);
             }
         }
 
-        // --- 獲取香港電台即時新聞 ---
+        // --- 新聞數據抓取 ---
         async function fetchNews() {
             const newsMarquee = document.getElementById('news-marquee');
             let allNewsItems = [];
 
-            // 同步併發獲取5個頻道的RSS轉JSON數據
             const promises = NEWS_FEEDS.map(url => fetch(url).then(res => res.json()).catch(() => null));
             const results = await Promise.all(promises);
 
             results.forEach(data => {
                 if (data && data.items) {
-                    data.items.forEach(item => {
-                        if (item.title) {
-                            allNewsItems.push(item.title.trim());
-                        }
-                    });
+                    data.items.forEach(item => { if (item.title) allNewsItems.push(item.title.trim()); });
                 }
             });
 
             if (allNewsItems.length > 0) {
-                // 去除重複的新聞標題並以明顯的間隔符號連結
                 const uniqueNews = [...new Set(allNewsItems)];
                 newsMarquee.innerHTML = uniqueNews.join(' &nbsp;&nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp;&nbsp; ');
-                
-                // 動態調整跑馬燈的動畫時間速度，確保文字長度不影響長者閱讀體驗
-                const textLength = newsMarquee.innerText.length;
-                const dynamicDuration = Math.max(90, Math.floor(textLength * 0.4)); 
-                newsMarquee.style.animationDuration = `${dynamicDuration}s`;
+                newsMarquee.style.animationDuration = `${Math.max(90, Math.floor(newsMarquee.innerText.length * 0.4))}s`;
             } else {
                 newsMarquee.innerText = '暫時未能取得最新新聞新聞。';
             }
         }
 
-        // --- 定時器與初始化控制中心 ---
         function refreshBusAndWeather() {
             fetchBusETA();
             fetchWeather();
             setUpdateTimestamp();
         }
 
-        // 初始化首次載入
         refreshBusAndWeather();
         fetchNews();
-
-        // 設定指定刷新頻率
-        setInterval(refreshBusAndWeather, 30000); // 巴士及天氣每 30 秒更新一次
-        setInterval(fetchNews, 300000);           // 新聞每 5 分鐘 (300000ms) 更新一次
-
+        setInterval(refreshBusAndWeather, 30000);
+        setInterval(fetchNews, 300000);
     </script>
 </body>
 </html>
