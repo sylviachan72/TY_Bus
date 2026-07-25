@@ -70,7 +70,6 @@
       flex-wrap: wrap;
       margin-bottom: 2px;
     }
-    /* 路線圓角標籤 (34px) */
     .bus-tag {
       font-size: 34px;
       font-weight: bold;
@@ -87,7 +86,6 @@
       color: #FFFFFF;
       white-space: nowrap;
     }
-    /* 班次時間區域 (32px) */
     .bus-eta-row {
       font-size: 32px;
       line-height: 1.2;
@@ -105,10 +103,10 @@
       color: #FFFFFF;
     }
     .eta-min-urgent {
-      color: #FFB300; /* 芒果黃 (< 10分鐘) */
+      color: #FFB300; 
     }
     .eta-min-normal {
-      color: #FFFFFF; /* 白色 (>= 10分鐘) */
+      color: #FFFFFF; 
     }
     .eta-loading {
       font-size: 28px;
@@ -145,7 +143,6 @@
       font-weight: 500;
     }
 
-    /* 天氣數據雙行區塊 (32px)：置中且零縫隙貼合 */
     .weather-container {
       width: 100%;
       text-align: center;
@@ -168,14 +165,13 @@
       margin-right: 6px;
     }
     .temp-low {
-      color: #3399FF; /* 最低溫藍色 */
+      color: #3399FF; 
       margin-right: 20px;
     }
     .temp-high {
-      color: #FF3B30; /* 最高溫紅色 */
+      color: #FF3B30; 
     }
 
-    /* 天氣警告區塊 (30px，增加間距防止標籤貼合) */
     .warning-box {
       font-size: 30px;
       text-align: center;
@@ -185,7 +181,7 @@
       justify-content: center;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px; /* 警告標籤之間的間距 */
+      gap: 12px; 
       min-height: 45px;
     }
     .warning-active {
@@ -194,14 +190,13 @@
       padding: 2px 14px;
       border-radius: 10px;
       font-weight: bold;
-      margin: 2px 6px; /* 保障間距 */
+      margin: 2px 6px; 
       display: inline-block;
     }
     .warning-none {
       color: #666666;
     }
 
-    /* 特別天氣提示區塊 (30px，限制4行高，慢速垂直向上跑馬燈) */
     .swt-box {
       font-size: 30px;
       margin-top: 12px;
@@ -230,7 +225,7 @@
     }
 
     /* ==========================================================================
-       底部即時新聞橫向跑馬燈 (45px)
+       底部即時新聞橫向跑馬燈
        ========================================================================== */
     .bottom-marquee-bar {
       height: 65px;
@@ -275,7 +270,6 @@
       animation: horizontalScroll 180s linear infinite;
     }
 
-    /* 動畫核心設定 */
     @keyframes horizontalScroll {
       0% { transform: translate3d(0, 0, 0); }
       100% { transform: translate3d(-100%, 0, 0); }
@@ -288,17 +282,15 @@
 </head>
 <body>
 
-  <!-- 頂部更新時間狀態欄 -->
   <div class="top-bar">
     <div id="bus-update-time">最後更新：--:--:--（每30秒自動刷新）</div>
     <div id="weather-update-time">最後更新：--:--:--（每5分鐘自動刷新）</div>
   </div>
 
-  <!-- 主核心顯示區 -->
   <div class="main-container">
     
-    <!-- 左欄：巴士實時報站資訊 -->
     <div class="left-col" id="bus-panel">
+      <!-- 巴士區域 -->
       <div class="bus-route-block">
         <div class="bus-header">
           <span class="bus-tag" style="background-color: #0052CC;">249X</span>
@@ -350,8 +342,8 @@
       </div>
     </div>
 
-    <!-- 右欄：時間、日期與天文台天氣 -->
     <div class="right-col">
+      <!-- 時間與天氣區域 -->
       <div class="time-box">
         <span class="ampm" id="clock-ampm">上午</span>
         <span class="clock" id="clock-time">00:00</span>
@@ -380,7 +372,6 @@
 
   </div>
 
-  <!-- 底部即時新聞走馬燈 -->
   <div class="bottom-marquee-bar">
     <div class="marquee-label">即時新聞</div>
     <div class="marquee-window">
@@ -389,7 +380,6 @@
   </div>
 
   <script>
-    // 巴士 API 組態
     const busConfigs = {
       'eta-249X': 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1',
       'eta-42A':  'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1',
@@ -409,10 +399,8 @@
       'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號'
     };
 
-    // 明報即時新聞 RSS
     const mingpaoFeedUrl = 'https://news.mingpao.com/rss/ins/all.xml';
 
-    // 時鐘與日期更新
     function updateClock() {
       const now = new Date();
       let hours = now.getHours();
@@ -437,7 +425,6 @@
              String(now.getSeconds()).padStart(2, '0');
     }
 
-    // 獲取巴士實時資訊
     async function fetchBusData() {
       for (const [elementId, apiUrl] of Object.entries(busConfigs)) {
         try {
@@ -472,7 +459,6 @@
       document.getElementById('bus-update-time').textContent = `最後更新：${get24Timestamp()}（每30秒自動刷新）`;
     }
 
-    // 獲取天文台天氣
     async function fetchWeatherData() {
       try {
         const resRead = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
@@ -536,38 +522,45 @@
       document.getElementById('weather-update-time').textContent = `最後更新：${get24Timestamp()}（每5分鐘自動刷新）`;
     }
 
-    // 明報新聞 RSS 解析器 (雙重 CORS 避障)
+    // ==========================================================================
+    // 升級版明報新聞 RSS 解析器 (突破 10 條限制)
+    // ==========================================================================
     async function fetchMingPaoNews() {
       let newsTitles = [];
+      const maxNewsCount = 30; // 這裡設定最大顯示數量（現改為 30 條）
       
       try {
-        const primaryApi = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(mingpaoFeedUrl)}`;
+        // 策略A：改用直接拉取原始 XML 的服務為主，不受 10 條限制
+        const primaryApi = `https://api.allorigins.win/raw?url=${encodeURIComponent(mingpaoFeedUrl)}`;
         const response = await fetch(primaryApi);
         if (response.ok) {
-          const json = await response.json();
-          if (json.status === 'ok' && json.items) {
-            json.items.slice(0, 15).forEach(item => {
-              if (item.title) newsTitles.push(item.title.trim());
-            });
+          const xmlText = await response.text();
+          const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+          const items = xmlDoc.getElementsByTagName("item");
+          
+          // 循環擷取，直到達到 maxNewsCount 數量
+          for (let i = 0; i < Math.min(items.length, maxNewsCount); i++) {
+            const tNode = items[i].getElementsByTagName("title")[0];
+            if (tNode && tNode.textContent) {
+              newsTitles.push(tNode.textContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim());
+            }
           }
         }
       } catch (err) {
         console.warn('主新聞代理連線問題，嘗試備用方案', err);
       }
 
+      // 策略B：如果原始 XML 解析失敗，才退回使用會限制 10 條的服務備底
       if (newsTitles.length === 0) {
         try {
-          const fallbackApi = `https://api.allorigins.win/raw?url=${encodeURIComponent(mingpaoFeedUrl)}`;
+          const fallbackApi = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(mingpaoFeedUrl)}`;
           const fbResponse = await fetch(fallbackApi);
           if (fbResponse.ok) {
-            const xmlText = await fbResponse.text();
-            const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
-            const items = xmlDoc.getElementsByTagName("item");
-            for (let i = 0; i < Math.min(items.length, 15); i++) {
-              const tNode = items[i].getElementsByTagName("title")[0];
-              if (tNode && tNode.textContent) {
-                newsTitles.push(tNode.textContent.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim());
-              }
+            const json = await fbResponse.json();
+            if (json.status === 'ok' && json.items) {
+              json.items.forEach(item => {
+                if (item.title) newsTitles.push(item.title.trim());
+              });
             }
           }
         } catch (err) {
@@ -580,28 +573,26 @@
         const finalNewsString = newsTitles.join('　　⚡　　');
         tickerElement.textContent = finalNewsString + '　　⚡　　';
         
+        // 根據文字總長度動態調整跑馬燈時間，新聞變多了，動畫時間也要跟著變長，確保長者看得清
         const textLength = finalNewsString.length;
-        const computedDuration = Math.max(120, textLength * 0.5); 
+        const computedDuration = Math.max(120, textLength * 0.4); // 計算合適的秒數
         tickerElement.style.animationDuration = `${computedDuration}s`;
       } else {
         tickerElement.textContent = '明報即時新聞連線中，請稍候...';
       }
     }
 
-    // 初始化與定時排程
     window.onload = function() {
       updateClock();
       setInterval(updateClock, 1000);
 
-      // 載入第一輪數據
       fetchBusData();
       fetchWeatherData();
       fetchMingPaoNews();
 
-      // 設定更新頻率
-      setInterval(fetchBusData, 30000);        // 巴士 30 秒自動更新
-      setInterval(fetchWeatherData, 300000);    // 天氣 5 分鐘自動更新
-      setInterval(fetchMingPaoNews, 300000);    // 明報新聞 5 分鐘自動更新
+      setInterval(fetchBusData, 30000);        
+      setInterval(fetchWeatherData, 300000);    
+      setInterval(fetchMingPaoNews, 300000);    
     };
   </script>
 </body>
