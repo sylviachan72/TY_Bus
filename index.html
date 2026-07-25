@@ -197,13 +197,6 @@
             display: flex;
             align-items: center;
         }
-        
-        /* 垂直分隔厚線 - 更改為白色 */
-        .ticker-sep {
-            color: #FFFFFF;
-            margin: 0 15px;
-            font-size: 40px;
-        }
     </style>
 </head>
 <body>
@@ -265,13 +258,11 @@
         /* ================= 右欄：時鐘邏輯 ================= */
         function updateClock() {
             const now = new Date();
-            // 時間
             let hours = now.getHours();
             let ampm = hours >= 12 ? '下午' : '上午';
             document.getElementById('ampm-display').innerText = ampm;
             document.getElementById('time-display').innerText = get12Time(now);
 
-            // 日期
             const year = now.getFullYear();
             const month = now.getMonth() + 1;
             const date = now.getDate();
@@ -282,7 +273,6 @@
         updateClock();
 
         /* ================= 左欄：巴士 ETA 邏輯 ================= */
-        // 透過增加 dir 屬性來過濾特定方向的巴士，如 243M 往荃灣為 Outbound (O)
         const BUS_ROUTES = [
             { route: '249X', dest: '博康', stop: '青桃樓', color: '#0052CC', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1' },
             { route: '42A', dest: '西九龍', stop: '青桃樓', color: '#007A33', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1' },
@@ -290,7 +280,7 @@
             { route: '49M', dest: '青衣站', stop: '青富苑', color: '#6B238E', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/333E9F98EEB84849/49M/1' },
             { route: '49M', dest: '青富苑', stop: '青衣站', color: '#6B238E', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/68CD99B45DDE014B/49M/1' },
             { route: '68E', dest: '元朗', stop: '青衣站', color: '#006666', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/83D9B6BE39530EEF/68E/1' },
-            { route: '243M', dest: '荃灣', stop: '美景花園', color: '#5C3A21', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1', dir: 'O' },
+            { route: '243M', dest: '荃灣', stop: '美景花園', color: '#5C3A21', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1' }, // 僅顯示荃灣方向 (Direction: O)
         ];
 
         async function fetchBusData() {
@@ -307,8 +297,7 @@
                     const res = await fetch(b.url);
                     const data = await res.json();
                     
-                    // 過濾有效數據，並根據設定的方向(如有)過濾，然後只取前三個班次
-                    let etas = data.data.filter(eta => eta.eta != null && (b.dir ? eta.dir === b.dir : true)).slice(0, 3);
+                    let etas = data.data.filter(eta => eta.eta != null).slice(0, 3);
                     
                     if (etas.length === 0) {
                         busHtml += `<span>暫無班次資料</span>`;
@@ -319,7 +308,6 @@
                             let diffMins = Math.max(0, Math.floor((etaDate - now) / 60000));
                             let timeStr = get12Time(etaDate);
                             
-                            // 剩餘時間判斷 (少於10分鐘顯示芒果黃)
                             let minColorClass = (diffMins <= 10) ? 'time-mango' : 'time-white';
                             
                             return `<span class="eta-block"><span class="time-white">${timeStr}(</span><span class="${minColorClass}">${diffMins}分鐘</span><span class="time-white">)</span></span>`;
@@ -347,7 +335,6 @@
             'TC8NW': '八號西北烈風或暴風信號', 'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號'
         };
 
-        // 保存特別天氣提示滾動動畫的全域變數
         let swtAnimation = null;
 
         async function fetchWeatherData() {
@@ -364,7 +351,6 @@
                 const warnData = await warnRes.json();
                 const swtData = await swtRes.json();
 
-                // 1. 溫濕度與天氣圖標 (優先取青衣，若無則回退預設)
                 let tempInfo = rhrData.temperature.data.find(d => d.place === '青衣') || rhrData.temperature.data[0];
                 let humidity = rhrData.humidity.data[0].value;
                 let iconId = rhrData.icon[0];
@@ -379,7 +365,6 @@
                     ❄️<span style="color:#3399FF">${minTemp}°C</span> ☀️<span style="color:#FF3333">${maxTemp}°C</span>
                 `;
 
-                // 2. 天氣警告
                 let warnHtml = '';
                 if (warnData && Object.keys(warnData).length > 0) {
                     for (let key in warnData) {
@@ -392,7 +377,6 @@
                 }
                 document.getElementById('weather-warn').innerHTML = warnHtml || `<div class="no-data">現時沒有生效的警告</div>`;
 
-                // 3. 特別天氣提示 (SWT)
                 let swtContent = document.getElementById('swt-content');
                 if (swtData && swtData.swt && swtData.swt.length > 0) {
                     swtContent.innerHTML = swtData.swt.map((t, i) => `${i + 1}. ${t.desc}`).join('<br>');
@@ -400,13 +384,12 @@
                     swtContent.innerHTML = `<div class="no-data">現時沒有特別天氣提示</div>`;
                 }
 
-                // SWT 動畫邏輯：若高度超過 4行(144px)，啟動 WAAPI 由下往上跑馬燈
                 if (swtAnimation) swtAnimation.cancel();
                 swtContent.style.transform = 'translateY(0)';
                 
                 let sHeight = swtContent.scrollHeight;
                 if (sHeight > 144) {
-                    let speed = 25; // 像素/秒
+                    let speed = 25;
                     let duration = (sHeight + 144) / speed * 1000;
                     swtAnimation = swtContent.animate([
                         { transform: 'translateY(144px)' },
@@ -431,14 +414,12 @@
 
         async function fetchAndPlayNews() {
             try {
-                // 透過 corsproxy 請求明報 RSS
                 const rssUrl = encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
                 const res = await fetch('https://corsproxy.io/?' + rssUrl);
                 const xmlText = await res.text();
                 const xml = new DOMParser().parseFromString(xmlText, "text/xml");
                 const items = Array.from(xml.querySelectorAll("item"));
 
-                // 篩選今天與昨天的新聞
                 let now = new Date();
                 let startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
                 
@@ -448,29 +429,27 @@
                 items.forEach(item => {
                     let pubDate = new Date(item.querySelector("pubDate").textContent);
                     if (pubDate >= startOfYesterday) {
-                        newsHtml += `<span>${count}. ${item.querySelector("title").textContent}</span><span class="ticker-sep">▌</span>`;
+                        // 使用與巴士時間完全相同的白色垂直線樣式
+                        newsHtml += `<span>${count}. ${item.querySelector("title").textContent}</span><span class="time-divider">|</span>`;
                         count++;
                     }
                 });
 
                 tickerContent.innerHTML = newsHtml || "暫無即時新聞";
                 
-                // 動態計算動畫持續時間 (恆定速度：80px/s)
                 const containerWidth = tickerWrap.offsetWidth;
                 const textWidth = tickerContent.offsetWidth;
                 const distance = containerWidth + textWidth;
                 const durationMs = (distance / 80) * 1000;
 
-                // 使用 Web Animations API 控制流動
                 const anim = tickerContent.animate([
                     { transform: `translateX(${containerWidth}px)` },
                     { transform: `translateX(-${textWidth}px)` }
                 ], {
                     duration: durationMs,
-                    iterations: 1 // 跑完一次即觸發 onfinish
+                    iterations: 1
                 });
 
-                // 當走馬燈走完時，重新拉取 RSS 進行下一輪播放
                 anim.onfinish = fetchAndPlayNews;
 
             } catch (e) {
@@ -479,7 +458,6 @@
             }
         }
         
-        // 等待字體和佈局穩定後啟動新聞跑馬燈
         window.addEventListener('load', () => {
             setTimeout(fetchAndPlayNews, 500); 
         });
