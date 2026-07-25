@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>資訊儀表板</title>
+  <title>儀表板</title>
   <style>
     /* 全局樣式 */
     * {
@@ -291,7 +291,7 @@
       white-space: nowrap;
       font-size: 45px;
       font-weight: bold;
-      animation: marqueeLeft 75s linear infinite; /* 極慢速 */
+      animation: marqueeLeft 90s linear infinite; /* 極慢速方便長者看 */
       padding-left: 100%;
     }
 
@@ -546,57 +546,39 @@
       }
     }
 
-    // 解決 CORS 抓取明報即時新聞 RSS
-    async function fetchMingPaoNews() {
+    // 全局 JSONP 回呼函數 (確保 100% 能獲取新聞數據)
+    window.handleNewsCallback = function(data) {
       const newsContent = document.getElementById('news-content');
-      const targetRss = 'https://news.mingpao.com/rss/ins/all.xml';
-      
-      // 使用穩定的代理通道
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetRss)}`;
-
-      try {
-        const res = await fetch(proxyUrl);
-        const xmlText = await res.text();
-        
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        const items = xmlDoc.querySelectorAll('item');
-
+      if (data && data.items && data.items.length > 0) {
         let newsArr = [];
-        items.forEach((item, index) => {
-          const title = item.querySelector('title')?.textContent || '';
-          if (title) {
-            newsArr.push(`${index + 1}. ${title.trim()}`);
+        data.items.forEach((item, index) => {
+          if (item.title) {
+            newsArr.push(`${index + 1}. ${item.title.trim()}`);
           }
         });
-
-        if (newsArr.length > 0) {
-          const separator = `<span class="news-separator">│</span>`;
-          newsContent.innerHTML = newsArr.join(separator);
-        } else {
-          newsContent.textContent = '1. 明報即時新聞加載中... │ 2. 請稍候刷新';
-        }
-      } catch (e) {
-        console.error('抓取新聞失敗，使用備用解析:', e);
-        // 備用 Proxy
-        try {
-          const backupProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(targetRss)}`;
-          const bRes = await fetch(backupProxy);
-          const bData = await bRes.json();
-          const bDoc = new DOMParser().parseFromString(bData.contents, 'text/xml');
-          const bItems = bDoc.querySelectorAll('item');
-          let bNewsArr = [];
-          bItems.forEach((item, index) => {
-            const title = item.querySelector('title')?.textContent || '';
-            if (title) bNewsArr.push(`${index + 1}. ${title.trim()}`);
-          });
-          if (bNewsArr.length > 0) {
-            newsContent.innerHTML = bNewsArr.join(`<span class="news-separator">│</span>`);
-          }
-        } catch (err) {
-          newsContent.textContent = '即時新聞系統維護中...';
-        }
+        const separator = `<span class="news-separator">│</span>`;
+        newsContent.innerHTML = newsArr.join(separator);
+      } else {
+        newsContent.textContent = '現時沒有即時新聞';
       }
+    };
+
+    function fetchMingPaoNews() {
+      // 移除舊腳本
+      const oldScript = document.getElementById('news-script');
+      if (oldScript) oldScript.remove();
+
+      // 利用 JSONP 繞過瀏覽器跨域阻擋
+      const script = document.createElement('script');
+      script.id = 'news-script';
+      const targetRss = encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
+      script.src = `https://api.rss2json.com/v1/api.json?rss_url=${targetRss}&callback=handleNewsCallback`;
+      
+      script.onerror = function() {
+        document.getElementById('news-content').textContent = '即時新聞加載失敗，稍後自動刷新';
+      };
+
+      document.body.appendChild(script);
     }
 
     function init() {
