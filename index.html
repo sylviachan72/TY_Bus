@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>儀表板</title>
+  <title>資訊儀表板</title>
   <style>
     /* 全局樣式 */
     * {
@@ -100,12 +100,18 @@
       white-space: nowrap;
     }
 
+    /* 巴士班次容器：不跨行設定 */
     .bus-eta-container {
       font-size: 32px;
       font-weight: bold;
-      line-height: 1.15;
-      word-break: break-all;
+      line-height: 1.2;
       letter-spacing: -0.5px;
+    }
+
+    /* 單個班次獨立包裹，防止「到達時間」與「剩餘分鐘」跨行斷開 */
+    .eta-item {
+      display: inline-block;
+      white-space: nowrap;
     }
 
     .time-white { color: #FFFFFF; }
@@ -291,7 +297,7 @@
       white-space: nowrap;
       font-size: 45px;
       font-weight: bold;
-      animation: marqueeLeft 90s linear infinite; /* 極慢速方便長者看 */
+      animation: marqueeLeft 180s linear infinite; /* 極慢速適應大量新聞 */
       padding-left: 100%;
     }
 
@@ -440,11 +446,13 @@
               const mm = String(etaTime.getMinutes()).padStart(2, '0');
               const timeStr = `${hh}:${mm}`;
               const colorClass = diffMin < 10 ? 'time-yellow' : 'time-white';
-              etaHtmlArr.push(`<span class="time-white">${timeStr}</span>(<span class="${colorClass}">${diffMin}分鐘</span>)`);
+              
+              // 使用 <span class="eta-item"> 包裹，嚴格禁止時間與分鐘之間跨行斷開
+              etaHtmlArr.push(`<span class="eta-item"><span class="time-white">${timeStr}</span>(<span class="${colorClass}">${diffMin}分鐘</span>)</span>`);
             }
           });
 
-          let etaDisplay = etaHtmlArr.join('|');
+          let etaDisplay = etaHtmlArr.join(' | ');
           if (!etaDisplay) {
             etaDisplay = '<span class="time-white">暫無班次資料</span>';
           }
@@ -546,39 +554,53 @@
       }
     }
 
-    // 全局 JSONP 回呼函數 (確保 100% 能獲取新聞數據)
-    window.handleNewsCallback = function(data) {
+    // 解析並顯示「今天及昨天」的所有即時新聞
+    async function fetchMingPaoNews() {
       const newsContent = document.getElementById('news-content');
-      if (data && data.items && data.items.length > 0) {
-        let newsArr = [];
-        data.items.forEach((item, index) => {
-          if (item.title) {
-            newsArr.push(`${index + 1}. ${item.title.trim()}`);
-          }
-        });
-        const separator = `<span class="news-separator">│</span>`;
-        newsContent.innerHTML = newsArr.join(separator);
-      } else {
-        newsContent.textContent = '現時沒有即時新聞';
-      }
-    };
-
-    function fetchMingPaoNews() {
-      // 移除舊腳本
-      const oldScript = document.getElementById('news-script');
-      if (oldScript) oldScript.remove();
-
-      // 利用 JSONP 繞過瀏覽器跨域阻擋
-      const script = document.createElement('script');
-      script.id = 'news-script';
-      const targetRss = encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
-      script.src = `https://api.rss2json.com/v1/api.json?rss_url=${targetRss}&callback=handleNewsCallback`;
+      const targetRss = 'https://news.mingpao.com/rss/ins/all.xml';
       
-      script.onerror = function() {
-        document.getElementById('news-content').textContent = '即時新聞加載失敗，稍後自動刷新';
-      };
+      // 使用可靠的代理進行完整 XML 解析，突破第三方 10 條上限
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetRss)}`;
 
-      document.body.appendChild(script);
+      try {
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        
+        if (data.contents) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+          const items = xmlDoc.querySelectorAll('item');
+
+          const now = new Date();
+          // 計算昨天的凌晨 00:00:00 時間點
+          const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+          let newsArr = [];
+          let count = 1;
+
+          items.forEach(item => {
+            const title = item.querySelector('title')?.textContent || '';
+            const pubDateStr = item.querySelector('pubDate')?.textContent || '';
+            const pubDate = pubDateStr ? new Date(pubDateStr) : null;
+
+            // 只要新聞時間屬於「今天」或「昨天」（即大於等於昨天凌晨），全數保留
+            if (title && (!pubDate || pubDate >= yesterdayStart)) {
+              newsArr.push(`${count}. ${title.trim()}`);
+              count++;
+            }
+          });
+
+          if (newsArr.length > 0) {
+            const separator = `<span class="news-separator">│</span>`;
+            newsContent.innerHTML = newsArr.join(separator);
+          } else {
+            newsContent.textContent = '現時沒有今天及昨天的即時新聞';
+          }
+        }
+      } catch (e) {
+        console.error('抓取新聞 RSS 失敗:', e);
+        newsContent.textContent = '即時新聞加載中，請稍後...';
+      }
     }
 
     function init() {
