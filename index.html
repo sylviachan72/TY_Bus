@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>天氣新聞資訊頁面</title>
+  <title>巴士天氣新聞</title>
   <style>
     * {
       box-sizing: border-box;
@@ -359,7 +359,8 @@
         dir: '往荃灣',
         stop: '📍美景花園',
         color: '#5C3A21', // 深朱古力色
-        url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1'
+        url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1',
+        destKeywords: ['荃灣', '愉景新城'] // 僅篩選往荃灣方向班次
       }
     ];
 
@@ -381,7 +382,7 @@
       CANCEL: "取消所有熱帶氣旋警告信號"
     };
 
-    // 格式化 24 小時制時間 (HH:mm:ss)
+    // 格式化 24 小時制時間 (HH:mm:ss) 用於頂部更新時間
     function get24HourTimeStr(date = new Date()) {
       const h = String(date.getHours()).padStart(2, '0');
       const m = String(date.getMinutes()).padStart(2, '0');
@@ -427,9 +428,17 @@
           const json = await res.json();
           
           if (json.data && Array.isArray(json.data)) {
+            let filteredData = json.data.filter(item => item.eta);
+
+            // 如設定了目的地過濾（例如 243M 只顯示荃灣方向）
+            if (route.destKeywords && route.destKeywords.length > 0) {
+              filteredData = filteredData.filter(item => 
+                route.destKeywords.some(keyword => item.dest_tc && item.dest_tc.includes(keyword))
+              );
+            }
+
             // 排序並取前 3 個班次
-            const validEtas = json.data
-              .filter(item => item.eta)
+            const validEtas = filteredData
               .sort((a, b) => new Date(a.eta) - new Date(b.eta))
               .slice(0, 3);
 
@@ -438,9 +447,12 @@
               const diffMs = etaTime - now;
               const mins = Math.max(0, Math.floor(diffMs / 60000));
               
-              const hh = String(etaTime.getHours()).padStart(2, '0');
-              const mm = String(etaTime.getMinutes()).padStart(2, '0');
-              const clockDisplay = `${hh}:${mm}`;
+              // 巴士到達時間轉為 12 小時制 (hh:mm)
+              let hh12 = etaTime.getHours() % 12;
+              hh12 = hh12 ? hh12 : 12;
+              const hhDisplay = String(hh12).padStart(2, '0');
+              const mmDisplay = String(etaTime.getMinutes()).padStart(2, '0');
+              const clockDisplay = `${hhDisplay}:${mmDisplay}`;
 
               const isYellow = mins < 10;
               const minClass = isYellow ? 'eta-yellow' : '';
@@ -535,7 +547,6 @@
           for (const key in data) {
             const warnObj = data[key];
             const code = warnObj.code || key;
-            // 比對 CODE 內的子類型對應表
             const name = WARNING_SUBTYPES[code] || warnObj.name || code;
             warningsHtml += `<div class="warning-badge">${name}</div>`;
           }
@@ -571,7 +582,6 @@
           `;
 
           const contentEl = document.getElementById('swt-content-el');
-          // 當文字超過 4 行，啟用自下而上跑馬燈
           if (items.length > 3 || contentEl.scrollHeight > 150) {
             contentEl.innerHTML = fullText + '<br>' + fullText;
             contentEl.classList.add('scroll-up');
@@ -619,7 +629,6 @@
             if (pubDateText) {
               const itemDate = new Date(pubDateText);
               const itemDateStr = itemDate.toDateString();
-              // 僅抓取今天及昨天的即時新聞
               if (itemDateStr === todayStr || itemDateStr === yesterdayStr) {
                 filteredTitles.push(titleText.trim());
               }
@@ -637,7 +646,6 @@
           const formattedNews = filteredTitles.map((t, i) => `${i + 1}. ${t}`).join(' <span class="news-divider">┃</span> ');
           marqueeEl.innerHTML = formattedNews;
 
-          // 計算寬度，啟動每秒 80px 勻速向左流動動畫
           startConstantMarquee();
         } else {
           marqueeEl.textContent = '暫無即時新聞';
@@ -657,7 +665,7 @@
       const wrapperWidth = wrapperEl.clientWidth;
 
       const totalDistance = textWidth + wrapperWidth;
-      const duration = totalDistance / 80; // 每秒 80px
+      const duration = totalDistance / 80;
 
       if (marqueeAnimKeyframes) {
         document.head.removeChild(marqueeAnimKeyframes);
@@ -686,7 +694,7 @@
       fetchBusData();
       setInterval(fetchBusData, 30000);
 
-      // 天氣與新聞每 5 分鐘 (300,000 ms) 自動刷新
+      // 天氣與新聞每 5 分鐘自動刷新
       fetchWeatherData();
       fetchNewsData();
       setInterval(() => {
