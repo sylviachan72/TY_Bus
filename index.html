@@ -1,535 +1,767 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>儀表板</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: "PingFang HK", "Microsoft JhengHei", sans-serif;
-        }
-        body {
-            background-color: black;
-            color: white;
-            overflow: hidden; /* 防止整個網頁滾動，使用分區滾動 */
-        }
-        .header {
-            display: flex;
-            width: 100%;
-            height: 40px;
-            align-items: center;
-        }
-        .header-col {
-            width: 50%;
-            text-align: center;
-            font-size: 20px;
-            color: white;
-        }
-        .main-container {
-            display: flex;
-            width: 100%;
-            height: calc(100vh - 40px - 70px); /* 扣除頭部和底部新聞跑馬燈高度 */
-        }
-        .col {
-            width: 50%;
-            height: 100%;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: none; /* Firefox 隱藏滾動條 */
-        }
-        .col::-webkit-scrollbar {
-            display: none; /* Chrome/Safari 隱藏滾動條 */
-        }
-        .divider {
-            border-bottom: 1px solid #333;
-            margin: 10px 0;
-        }
-        
-        /* === 巴士欄位 === */
-        .bus-item {
-            padding: 5px 15px;
-        }
-        .bus-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .bus-no {
-            font-size: 34px;
-            font-weight: bold;
-            padding: 4px 12px;
-            border-radius: 10px;
-            margin-right: 15px;
-            line-height: 1;
-        }
-        .bus-info {
-            font-size: 34px;
-        }
-        .bus-times {
-            font-size: 32px;
-            line-height: 1.3;
-        }
-        .bus-time-block {
-            display: inline-block; /* 確保時間與倒數不跨行 */
-            white-space: nowrap;
-        }
-        .mango { color: #FFCC00; }
-        .sep { margin: 0 5px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>資訊儀表板</title>
+  <style>
+    /* ==========================================
+       全域樣式設定
+       ========================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* 巴士顏色 */
-        .bg-249X { background-color: #0052CC; }
-        .bg-42A { background-color: #007A33; }
-        .bg-43 { background-color: #C64B00; }
-        .bg-49M { background-color: #6B238E; }
-        .bg-68E { background-color: #006666; }
-        .bg-243M { background-color: #5C3A21; }
+    /* 主內容雙欄區塊 */
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
 
-        /* === 天氣與時間欄位 === */
-        .time-section {
-            text-align: center;
-            padding: 10px;
-        }
-        .ampm {
-            font-size: 40px;
-            margin-right: 15px;
-            vertical-align: super;
-        }
-        .time-display {
-            font-size: 100px;
-            font-weight: bold;
-            line-height: 1;
-        }
-        .date-display {
-            font-size: 30px;
-            margin-top: -5px; /* 極致貼近時間 */
-            margin-bottom: 15px;
-        }
-        .weather-info {
-            font-size: 32px;
-            text-align: center;
-        }
-        .weather-line-1 {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-        .weather-icon img {
-            width: 50px;
-            height: 50px;
-            vertical-align: middle;
-        }
-        .weather-line-2 {
-            margin-top: 0px; /* 零縫隙貼合 */
-        }
-        .temp-min { color: #5DADE2; }
-        .temp-max { color: #E74C3C; }
+    /* 通用欄位與滾動條設定 (隱藏滾動條但保持可滑動) */
+    .column {
+      width: 50%;
+      padding: 8px 12px;
+      overflow-y: auto;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    .column::-webkit-scrollbar {
+      display: none; /* Chrome / Safari */
+    }
 
-        /* 警告與提示 */
-        .warnings-section {
-            text-align: center;
-            padding: 10px;
-        }
-        .warning-badge {
-            display: inline-block;
-            background-color: #D32F2F;
-            color: white;
-            font-size: 30px;
-            padding: 5px 15px;
-            border-radius: 10px;
-            margin: 5px;
-        }
-        .no-warning {
-            color: #888888;
-            font-size: 30px;
-        }
-        .swt-container {
-            font-size: 30px;
-            text-align: left;
-            padding: 0 20px;
-            height: 160px; /* 約4行高度 */
-            overflow: hidden;
-            position: relative;
-        }
-        .swt-content {
-            position: absolute;
-            width: 100%;
-        }
-        
-        /* === 即時新聞跑馬燈 === */
-        .news-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background-color: #111;
-            border-top: 2px solid #D32F2F;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-        }
-        .news-label {
-            background-color: #D32F2F;
-            color: white;
-            font-size: 35px;
-            font-weight: bold;
-            padding: 0 15px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            z-index: 10;
-        }
-        .news-ticker-container {
-            flex-grow: 1;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-        .news-content {
-            position: absolute;
-            font-size: 45px;
-            line-height: 70px;
-            white-space: nowrap;
-            will-change: transform;
-        }
-    </style>
+    .left-column {
+      border-right: 1px solid #222222;
+    }
+
+    /* 頂部最後更新時間標籤 */
+    .update-header {
+      font-size: 20px;
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+
+    /* ==========================================
+       左欄：巴士資訊樣式
+       ========================================== */
+    .bus-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bus-item {
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 8px;
+    }
+
+    .bus-header {
+      font-size: 34px;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* 巴士號碼圓角標籤 */
+    .bus-tag {
+      padding: 2px 12px;
+      border-radius: 8px;
+      color: #ffffff;
+      display: inline-block;
+      font-weight: bold;
+    }
+
+    .bus-dest-stop {
+      color: #ffffff;
+    }
+
+    /* 巴士班次容器 */
+    .bus-eta-container {
+      font-size: 32px;
+      color: #ffffff;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      row-gap: 4px;
+    }
+
+    /* 每一組班次 (到達時間 + 倒數分鐘)，強制不跨行拆分 */
+    .eta-group {
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .eta-time {
+      color: #ffffff;
+    }
+
+    /* 少於10分鐘顯示芒果黃，其餘顯示白色 */
+    .eta-min-yellow {
+      color: #FFC107;
+      font-weight: bold;
+    }
+    .eta-min-white {
+      color: #ffffff;
+    }
+
+    .eta-sep {
+      color: #ffffff;
+      margin: 0 6px;
+    }
+
+    .no-eta {
+      font-size: 32px;
+      color: #888888;
+    }
+
+    /* ==========================================
+       右欄：時間與天氣樣式
+       ========================================== */
+    .weather-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .time-section {
+      text-align: center;
+      margin-bottom: 0px;
+      width: 100%;
+    }
+
+    .time-display {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .ampm {
+      font-size: 40px;
+      color: #ffffff;
+      margin-right: 12px;
+      font-weight: bold;
+    }
+
+    .clock {
+      font-size: 100px;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: -2px;
+    }
+
+    .date-display {
+      font-size: 30px;
+      color: #ffffff;
+      text-align: center;
+      margin-top: -8px;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    /* 天氣數據列 (零縫隙極致緊湊) */
+    .weather-data-box {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .weather-row-1 {
+      font-size: 32px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      line-height: 1.1;
+    }
+
+    .weather-icon {
+      height: 42px;
+      width: auto;
+      vertical-align: middle;
+    }
+
+    .weather-row-2 {
+      font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin: 0;
+      padding: 0;
+      line-height: 1.1;
+    }
+
+    .temp-min {
+      color: #4D94FF; /* 鮮藍色 */
+      font-weight: bold;
+    }
+
+    .temp-max {
+      color: #FF4D4D; /* 鮮紅色 */
+      font-weight: bold;
+    }
+
+    /* 天氣警告與特別提示區塊 */
+    .info-block {
+      width: 100%;
+      text-align: left;
+      margin-top: 6px;
+    }
+
+    .warning-badge {
+      font-size: 30px;
+      background-color: #E53935;
+      color: #ffffff;
+      padding: 4px 14px;
+      border-radius: 8px;
+      display: inline-block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      margin-right: 6px;
+    }
+
+    .warning-none, .swt-none {
+      font-size: 30px;
+      color: #888888;
+      text-align: left;
+    }
+
+    /* 特別天氣提示跑馬燈容器 */
+    .swt-container {
+      font-size: 30px;
+      color: #ffffff;
+      line-height: 1.35;
+      text-align: left;
+      max-height: 160px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .swt-scroll-content {
+      display: inline-block;
+    }
+
+    @keyframes verticalMarquee {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+
+    .swt-animated {
+      animation: verticalMarquee 15s linear infinite;
+    }
+    .swt-animated:hover {
+      animation-play-state: paused;
+    }
+
+    /* ==========================================
+       底部：即時新聞跑馬燈
+       ========================================== */
+    .news-bar {
+      height: 65px;
+      background-color: #000000;
+      border-top: 2px solid #333333;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      width: 100vw;
+    }
+
+    .news-label {
+      background-color: #E53935;
+      color: #ffffff;
+      font-size: 45px;
+      font-weight: bold;
+      padding: 0 16px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .news-track-wrapper {
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .news-track {
+      position: absolute;
+      white-space: nowrap;
+      font-size: 45px;
+      color: #ffffff;
+      will-change: transform;
+      display: flex;
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="header-col" id="bus-update-time">最後更新：--:--:--（每30秒自動刷新）</div>
-        <div class="header-col" id="weather-update-time">最後更新：--:--:--（每5分鐘自動刷新）</div>
-    </div>
-
-    <div class="main-container">
-        <!-- 左欄：巴士 -->
-        <div class="col" id="bus-list">
-            <!-- 巴士資料動態載入 -->
-        </div>
-
-        <!-- 右欄：天氣與時間 -->
-        <div class="col">
-            <div class="time-section">
-                <span class="ampm" id="clock-ampm"></span><span class="time-display" id="clock-time">--:--</span>
-                <div class="date-display" id="clock-date">--年--月--日 星期--</div>
-            </div>
-            
-            <div class="weather-info">
-                <div class="weather-line-1">
-                    <span class="weather-icon" id="wx-icon"></span>
-                    <span id="wx-temp">--°C(青衣)</span>
-                    <span id="wx-hum">💧--%</span>
-                </div>
-                <div class="weather-line-2">
-                    <span class="temp-min">❄️<span id="wx-min">--</span>°C</span> 
-                    <span class="temp-max">☀️<span id="wx-max">--</span>°C</span>
-                </div>
-            </div>
-
-            <div class="divider" style="margin-top: 15px;"></div>
-            
-            <div class="warnings-section" id="wx-warnings">
-                <!-- 警告動態載入 -->
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="swt-container">
-                <div class="swt-content" id="wx-swt">
-                    <!-- 特別天氣提示動態載入 -->
-                </div>
-            </div>
+  <div class="main-container">
+    
+    <div class="column left-column">
+      <div class="update-header" id="bus-update-header">最後更新：--:--:--（每30秒自動刷新）</div>
+      <div class="bus-list" id="bus-list-container">
         </div>
     </div>
 
-    <!-- 底部：即時新聞 -->
-    <div class="news-footer">
-        <div class="news-label">即時新聞</div>
-        <div class="news-ticker-container" id="news-container">
-            <div class="news-content" id="news-content">載入中...</div>
+    <div class="column weather-column">
+      <div class="update-header" id="weather-update-header">最後更新：--:--:--（每5分鐘自動刷新）</div>
+      
+      <div class="time-section">
+        <div class="time-display">
+          <span class="ampm" id="clock-ampm">--</span>
+          <span class="clock" id="clock-time">--:--</span>
         </div>
-    </div>
+        <div class="date-display" id="date-display">----年--月--日 星期-</div>
+      </div>
 
-    <script>
-        // ================= 時間更新 =================
-        function updateClock() {
-            const now = new Date();
-            let h = now.getHours();
-            let m = now.getMinutes();
-            const ampm = h >= 12 ? '下午' : '上午';
-            h = h % 12;
-            h = h ? h : 12;
-            m = m < 10 ? '0' + m : m;
-            
-            document.getElementById('clock-ampm').innerText = ampm;
-            document.getElementById('clock-time').innerText = `${h}:${m}`;
-            
-            const days = ['日', '一', '二', '三', '四', '五', '六'];
-            document.getElementById('clock-date').innerText = 
-                `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${days[now.getDay()]}`;
+      <div class="weather-data-box">
+        <div class="weather-row-1">
+          <img id="wx-icon" class="weather-icon" src="" alt="" style="display:none;">
+          <span id="tsing-yi-temp">--°C(青衣)</span>
+          <span id="humidity">💧--%</span>
+        </div>
+        <div class="weather-row-2">
+          <span class="temp-min" id="temp-min">❄️--°C</span>
+          <span class="temp-max" id="temp-max">☀️--°C</span>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div id="warning-container">
+          <div class="warning-none">現時沒有生效的警告</div>
+        </div>
+      </div>
+
+      <div class="info-block" style="margin-top: 10px;">
+        <div id="swt-container" class="swt-container">
+          <div class="swt-none">現時沒有特別天氣提示</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="news-bar">
+    <div class="news-label">即時新聞</div>
+    <div class="news-track-wrapper" id="news-wrapper">
+      <div class="news-track" id="news-track">正在載入即時新聞...</div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================
+       1. 巴士路線資料配置與邏輯
+       ========================================== */
+    const BUS_ROUTES = [
+      { id: '249X', routeDisplay: '249X', dest: '往博康', stop: '📍青桃樓', bg: '#0052CC', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1', filterDir: null },
+      { id: '42A',  routeDisplay: '42A',  dest: '往西九龍', stop: '📍青桃樓', bg: '#007A33', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1', filterDir: null },
+      { id: '43',   routeDisplay: '43',   dest: '往荃灣西', stop: '📍青桃樓', bg: '#C64B00', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/43/1', filterDir: null },
+      { id: '49M_1',routeDisplay: '49M',  dest: '往青衣站', stop: '📍青富苑', bg: '#6B238E', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/333E9F98EEB84849/49M/1', filterDir: null },
+      { id: '49M_2',routeDisplay: '49M',  dest: '往青富苑', stop: '📍青衣站', bg: '#6B238E', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/68CD99B45DDE014B/49M/1', filterDir: null },
+      { id: '68E',  routeDisplay: '68E',  dest: '往元朗',   stop: '📍青衣站', bg: '#006666', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/83D9B6BE39530EEF/68E/1', filterDir: null },
+      { id: '243M', routeDisplay: '243M', dest: '往荃灣',   stop: '📍美景花園', bg: '#5C3A21', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1', filterDir: 'O' }
+    ];
+
+    // 初始化巴士 DOM 結構
+    function initBusLayout() {
+      const container = document.getElementById('bus-list-container');
+      container.innerHTML = '';
+      BUS_ROUTES.forEach(route => {
+        const item = document.createElement('div');
+        item.className = 'bus-item';
+        item.innerHTML = `
+          <div class="bus-header">
+            <span class="bus-tag" style="background-color: ${route.bg};">${route.routeDisplay}</span>
+            <span class="bus-dest-stop">${route.dest} ${route.stop}</span>
+          </div>
+          <div class="bus-eta-container" id="eta-box-${route.id}">
+            <span class="no-eta">更新中...</span>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // 格式化 ISO 時間為 12 小時制 (hh:mm)
+    function formatTime12h(dateObj) {
+      let hours = dateObj.getHours();
+      let minutes = dateObj.getMinutes();
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 點轉為 12
+      const strHours = hours < 10 ? '0' + hours : hours;
+      const strMins = minutes < 10 ? '0' + minutes : minutes;
+      return `${strHours}:${strMins}`;
+    }
+
+    // 獲取與渲染巴士到站時間
+    async function fetchBusData() {
+      const now = new Date();
+      document.getElementById('bus-update-header').innerText = `最後更新：${format24hTime(now)}（每30秒自動刷新）`;
+
+      for (const route of BUS_ROUTES) {
+        try {
+          const res = await fetch(route.url);
+          if (!res.ok) throw new Error('API Error');
+          const json = await res.json();
+          let dataList = json.data || [];
+
+          // 若有設定方向過濾 (如 243M 只顯示 "O")
+          if (route.filterDir) {
+            dataList = dataList.filter(item => item.dir === route.filterDir);
+          }
+
+          // 篩選有有效到站時間的班次，並按時間排序
+          const validEtas = dataList
+            .filter(item => item.eta)
+            .sort((a, b) => new Date(a.eta) - new Date(b.eta))
+            .slice(0, 3); // 最多取最近 3 個班次
+
+          const etaBox = document.getElementById(`eta-box-${route.id}`);
+
+          if (validEtas.length === 0) {
+            etaBox.innerHTML = `<span class="no-eta">暫無班次資料</span>`;
+            continue;
+          }
+
+          const etaHtmlParts = validEtas.map(item => {
+            const etaDate = new Date(item.eta);
+            const timeStr = formatTime12h(etaDate);
+            const diffMins = Math.max(0, Math.floor((etaDate - now) / 60000));
+
+            const minClass = diffMins < 10 ? 'eta-min-yellow' : 'eta-min-white';
+            return `<span class="eta-group"><span class="eta-time">${timeStr}</span><span class="${minClass}">(${diffMins}分鐘)</span></span>`;
+          });
+
+          etaBox.innerHTML = etaHtmlParts.join('<span class="eta-sep">|</span>');
+
+        } catch (err) {
+          console.error(`Bus fetch error [${route.id}]:`, err);
+          const etaBox = document.getElementById(`eta-box-${route.id}`);
+          if (etaBox) etaBox.innerHTML = `<span class="no-eta">暫無班次資料</span>`;
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+      }
+    }
 
-        function get24hTime() {
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            return `${h}:${m}:${s}`;
+
+    /* ==========================================
+       2. 時鐘與日期邏輯
+       ========================================== */
+    function format24hTime(date) {
+      const h = String(date.getHours()).padStart(2, '0');
+      const m = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      // 時間 12 小時制
+      let hours = now.getHours();
+      const ampm = hours >= 12 ? '下午' : '上午';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const strHours = hours < 10 ? '0' + hours : hours;
+      const strMins = String(now.getMinutes()).padStart(2, '0');
+
+      document.getElementById('clock-ampm').innerText = ampm;
+      document.getElementById('clock-time').innerText = `${strHours}:${strMins}`;
+
+      // 日期
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const weekStr = weekDays[now.getDay()];
+
+      document.getElementById('date-display').innerText = `${year}年${month}月${day}日 ${weekStr}`;
+    }
+
+
+    /* ==========================================
+       3. 天氣報告與警告邏輯
+       ========================================== */
+    const WARNING_CODE_MAP = {
+      'WFIREY': '黃色火災危險警告',
+      'WFIRER': '紅色火災危險警告',
+      'WRAINA': '黃色暴雨警告信號',
+      'WRAINR': '紅色暴雨警告信號',
+      'WRAINB': '黑色暴雨警告信號',
+      'TC1': '一號戒備信號',
+      'TC3': '三號強風信號',
+      'TC8NE': '八號東北烈風或暴風信號',
+      'TC8SE': '八號東南烈風或暴風信號',
+      'TC8SW': '八號西南烈風或暴風信號',
+      'TC8NW': '八號西北烈風或暴風信號',
+      'TC9': '九號烈風或暴風風力增強信號',
+      'TC10': '十號颶風信號',
+      'CANCEL': '取消所有熱帶氣旋警告信號'
+    };
+
+    async function fetchWeatherData() {
+      const now = new Date();
+      document.getElementById('weather-update-header').innerText = `最後更新：${format24hTime(now)}（每5分鐘自動刷新）`;
+
+      // 1. 抓取實時天氣 (rhrread)
+      try {
+        const resRhr = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
+        const dataRhr = await resRhr.json();
+
+        // 濕度
+        if (dataRhr.humidity && dataRhr.humidity.data.length > 0) {
+          document.getElementById('humidity').innerText = `💧${dataRhr.humidity.data[0].value}%`;
         }
 
-        // ================= 巴士系統 =================
-        const busRoutes = [
-            { no: '249X', color: 'bg-249X', dirName: '博康', stopName: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/CA60760D2303E6D0/249X/1' },
-            { no: '42A', color: 'bg-42A', dirName: '西九龍', stopName: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/42A/1' },
-            { no: '43', color: 'bg-43', dirName: '荃灣西', stopName: '青桃樓', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/B085DDE8E381E370/43/1' },
-            { no: '49M', color: 'bg-49M', dirName: '青衣站', stopName: '青富苑', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/333E9F98EEB84849/49M/1' },
-            { no: '49M', color: 'bg-49M', dirName: '青富苑', stopName: '青衣站', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/68CD99B45DDE014B/49M/1' },
-            { no: '68E', color: 'bg-68E', dirName: '元朗', stopName: '青衣站', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/83D9B6BE39530EEF/68E/1' },
-            { no: '243M', color: 'bg-243M', dirName: '荃灣', stopName: '美景花園', url: 'https://data.etabus.gov.hk/v1/transport/kmb/eta/97411601C5B851AD/243M/1', filterDir: 'O' }
-        ];
+        // 青衣溫度
+        if (dataRhr.temperature && dataRhr.temperature.data) {
+          const tsingYiData = dataRhr.temperature.data.find(t => t.place === '青衣') || dataRhr.temperature.data[0];
+          if (tsingYiData) {
+            document.getElementById('tsing-yi-temp').innerText = `${tsingYiData.value}°C(青衣)`;
+          }
+        }
 
-        async function fetchBuses() {
-            const container = document.getElementById('bus-list');
-            let html = '';
-            
-            for (let i = 0; i < busRoutes.length; i++) {
-                const route = busRoutes[i];
-                try {
-                    const res = await fetch(route.url);
-                    const json = await res.json();
-                    let etas = json.data;
-                    
-                    if (route.filterDir) {
-                        etas = etas.filter(e => e.dir === route.filterDir);
-                    }
-                    
-                    etas = etas.filter(e => e.eta != null).slice(0, 3); // 最多3班
+        // 天氣圖標 (HKOWxIconOutline 深色背景透明圖標)
+        if (dataRhr.icon && dataRhr.icon.length > 0) {
+          const iconCode = dataRhr.icon[0];
+          const iconImg = document.getElementById('wx-icon');
+          iconImg.src = `https://www.hko.gov.hk/images/HKOWxIconOutline/pic${iconCode}.png`;
+          iconImg.style.display = 'inline-block';
+        }
+      } catch (e) {
+        console.error('Error fetching rhrread:', e);
+      }
 
-                    let timeHtml = '';
-                    if (etas.length === 0) {
-                        timeHtml = '<span class="bus-time-block">暫無班次資料</span>';
-                    } else {
-                        const now = new Date();
-                        timeHtml = etas.map((e, index) => {
-                            const etaDate = new Date(e.eta);
-                            let h = etaDate.getHours();
-                            let m = etaDate.getMinutes();
-                            h = h % 12;
-                            h = h ? h : 12;
-                            m = m < 10 ? '0' + m : m;
-                            const timeStr = `${h}:${m}`;
-                            
-                            const diffMs = etaDate - now;
-                            const diffMins = Math.floor(diffMs / 60000);
-                            let minStr = diffMins <= 0 ? '即將到達' : `${diffMins}分鐘`;
-                            
-                            // 少於10分鐘顯示芒果黃
-                            let countdownHtml = (diffMins < 10 && diffMins >= 0) ? `<span class="mango">${minStr}</span>` : minStr;
-                            
-                            let sep = index < etas.length - 1 ? '<span class="sep">|</span>' : '';
-                            return `<span class="bus-time-block">${timeStr}(${countdownHtml}) ${sep} </span>`;
-                        }).join('');
-                    }
+      // 2. 抓取預報今日最高/最低溫 (fnd)
+      try {
+        const resFnd = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc');
+        const dataFnd = await resFnd.json();
+        if (dataFnd.weatherForecast && dataFnd.weatherForecast.length > 0) {
+          const todayFnd = dataFnd.weatherForecast[0];
+          document.getElementById('temp-min').innerText = `❄️${todayFnd.forecastMintemp.value}°C`;
+          document.getElementById('temp-max').innerText = `☀️${todayFnd.forecastMaxtemp.value}°C`;
+        }
+      } catch (e) {
+        console.error('Error fetching fnd:', e);
+      }
 
-                    html += `
-                        <div class="bus-item">
-                            <div class="bus-header">
-                                <span class="bus-no ${route.color}">${route.no}</span>
-                                <span class="bus-info">往${route.dirName} 📍${route.stopName}</span>
-                            </div>
-                            <div class="bus-times">${timeHtml}</div>
-                        </div>
-                        <div class="divider"></div>
-                    `;
-                } catch (error) {
-                    console.error('Bus fetch error:', error);
-                }
+      // 3. 抓取天氣警告摘要 (warnsum)
+      try {
+        const resWarn = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
+        const dataWarn = await resWarn.json();
+        const warnContainer = document.getElementById('warning-container');
+        warnContainer.innerHTML = '';
+
+        let activeWarnings = [];
+        if (dataWarn && Object.keys(dataWarn).length > 0) {
+          for (const key in dataWarn) {
+            const warnObj = dataWarn[key];
+            const code = warnObj.code || key;
+            const name = WARNING_CODE_MAP[code] || warnObj.name || code;
+            if (code !== 'CANCEL') {
+              activeWarnings.push(name);
             }
-            container.innerHTML = html;
-            document.getElementById('bus-update-time').innerText = `最後更新：${get24hTime()}（每30秒自動刷新）`;
+          }
         }
+
+        if (activeWarnings.length > 0) {
+          activeWarnings.forEach(wName => {
+            const badge = document.createElement('div');
+            badge.className = 'warning-badge';
+            badge.innerText = wName;
+            warnContainer.appendChild(badge);
+          });
+        } else {
+          warnContainer.innerHTML = `<div class="warning-none">現時沒有生效的警告</div>`;
+        }
+      } catch (e) {
+        console.error('Error fetching warnsum:', e);
+        document.getElementById('warning-container').innerHTML = `<div class="warning-none">現時沒有生效的警告</div>`;
+      }
+
+      // 4. 抓取特別天氣提示 (swt)
+      try {
+        const resSwt = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=swt&lang=tc');
+        const dataSwt = await resSwt.json();
+        const swtContainer = document.getElementById('swt-container');
+        swtContainer.innerHTML = '';
+
+        if (dataSwt && dataSwt.swt && dataSwt.swt.length > 0) {
+          const tips = dataSwt.swt;
+          let tipTexts = tips.map((t, idx) => `${idx + 1}. ${t.desc}`);
+          
+          // 若超過 4 行或內容較長，採用滾動跑馬燈
+          const fullContent = tipTexts.join('<br>');
+          const wrapper = document.createElement('div');
+          
+          if (tips.length >= 2 || fullContent.length > 80) {
+            // 重複一份以實現無縫垂直滾動
+            wrapper.className = 'swt-scroll-content swt-animated';
+            wrapper.innerHTML = `${fullContent}<br><br>${fullContent}`;
+          } else {
+            wrapper.className = 'swt-scroll-content';
+            wrapper.innerHTML = fullContent;
+          }
+          swtContainer.appendChild(wrapper);
+        } else {
+          swtContainer.innerHTML = `<div class="swt-none">現時沒有特別天氣提示</div>`;
+        }
+      } catch (e) {
+        console.error('Error fetching swt:', e);
+        document.getElementById('swt-container').innerHTML = `<div class="swt-none">現時沒有特別天氣提示</div>`;
+      }
+    }
+
+
+    /* ==========================================
+       4. 明報 RSS 即時新聞跑馬燈 (corsproxy.io)
+       ========================================== */
+    let newsAnimationId = null;
+
+    async function fetchAndStartNewsMarquee() {
+      const track = document.getElementById('news-track');
+      const wrapper = document.getElementById('news-wrapper');
+
+      if (newsAnimationId) {
+        cancelAnimationFrame(newsAnimationId);
+        newsAnimationId = null;
+      }
+
+      try {
+        // 使用 corsproxy.io 解析明報即時新聞 RSS
+        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
+        const res = await fetch(rssUrl);
+        if (!res.ok) throw new Error('News RSS fetch error');
         
-        fetchBuses();
-        setInterval(fetchBuses, 30000);
+        const xmlText = await res.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        const items = Array.from(xmlDoc.querySelectorAll('item'));
 
-        // ================= 天氣系統 =================
-        const warningMapping = {
-            'WFIREY': '黃色火災危險警告', 'WFIRER': '紅色火災危險警告',
-            'WRAINA': '黃色暴雨警告信號', 'WRAINR': '紅色暴雨警告信號', 'WRAINB': '黑色暴雨警告信號',
-            'TC1': '一號戒備信號', 'TC3': '三號強風信號', 'TC8NE': '八號東北烈風或暴風信號',
-            'TC8SE': '八號東南烈風或暴風信號', 'TC8SW': '八號西南烈風或暴風信號', 'TC8NW': '八號西北烈風或暴風信號',
-            'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號'
-        };
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
 
-        async function fetchWeather() {
-            try {
-                // 現時天氣
-                const rhrres = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
-                const rhrData = await rhrres.json();
-                
-                // 青衣溫度
-                const tsingYiTemp = rhrData.temperature.data.find(d => d.place === '青衣');
-                if (tsingYiTemp) {
-                    document.getElementById('wx-temp').innerText = `${tsingYiTemp.value}°C(青衣)`;
-                }
-                document.getElementById('wx-hum').innerText = `💧${rhrData.humidity.data[0].value}%`;
-                
-                // 天氣圖標 (深色背景透明線條版)
-                if (rhrData.icon && rhrData.icon[0]) {
-                    document.getElementById('wx-icon').innerHTML = `<img src="https://www.hko.gov.hk/images/HKOWxIconOutline/pic${rhrData.icon[0]}.png" />`;
-                }
-
-                // 九天天氣預報 (取今天最高最低)
-                const fndres = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc');
-                const fndData = await fndres.json();
-                const todayFnd = fndData.weatherForecast[0];
-                document.getElementById('wx-min').innerText = todayFnd.forecastMintemp.value;
-                document.getElementById('wx-max').innerText = todayFnd.forecastMaxtemp.value;
-
-                // 天氣警告
-                const warnres = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
-                const warnData = await warnres.json();
-                const warnContainer = document.getElementById('wx-warnings');
-                if (Object.keys(warnData).length === 0) {
-                    warnContainer.innerHTML = '<div class="no-warning">現時沒有生效的警告</div>';
-                } else {
-                    let warnHtml = '';
-                    for (const key in warnData) {
-                        const code = warnData[key].code;
-                        const warnText = warningMapping[code] || warnData[key].name; // 使用子類型，否則用預設名稱
-                        if(warnData[key].actionCode !== "CANCEL") {
-                            warnHtml += `<div class="warning-badge">${warnText}</div>`;
-                        }
-                    }
-                    warnContainer.innerHTML = warnHtml;
-                }
-
-                // 特別天氣提示
-                const swtres = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=swt&lang=tc');
-                const swtData = await swtres.json();
-                const swtContainer = document.getElementById('wx-swt');
-                
-                if (!swtData.swt || swtData.swt.length === 0) {
-                    swtContainer.innerHTML = '<div class="no-warning">現時沒有特別天氣提示</div>';
-                    swtContainer.style.animation = 'none';
-                    swtContainer.style.top = '0';
-                } else {
-                    let swtHtml = swtData.swt.map((item, idx) => `${idx + 1}. ${item.desc}`).join('<br><br>');
-                    swtContainer.innerHTML = swtHtml;
-                    
-                    // 文字過長跑馬燈處理 (由下往上)
-                    setTimeout(() => {
-                        const containerHeight = document.querySelector('.swt-container').offsetHeight;
-                        const contentHeight = swtContainer.offsetHeight;
-                        if (contentHeight > containerHeight) {
-                            const duration = (contentHeight / 20); // 計算動畫時間
-                            swtContainer.animate([
-                                { top: `${containerHeight}px` },
-                                { top: `-${contentHeight}px` }
-                            ], {
-                                duration: duration * 1000,
-                                iterations: Infinity,
-                                easing: 'linear'
-                            });
-                        } else {
-                            swtContainer.style.top = '0';
-                        }
-                    }, 100);
-                }
-
-                document.getElementById('weather-update-time').innerText = `最後更新：${get24hTime()}（每5分鐘自動刷新）`;
-            } catch (error) {
-                console.error('Weather fetch error:', error);
+        // 篩選今天與昨天的新聞
+        const filteredTitles = [];
+        items.forEach(item => {
+          const title = item.querySelector('title')?.textContent;
+          const pubDateStr = item.querySelector('pubDate')?.textContent;
+          if (title) {
+            if (pubDateStr) {
+              const pubDate = new Date(pubDateStr);
+              if (pubDate >= yesterday) {
+                filteredTitles.push(title.trim());
+              }
+            } else {
+              filteredTitles.push(title.trim());
             }
+          }
+        });
+
+        if (filteredTitles.length === 0) {
+          track.innerText = '暫無即時新聞內容';
+          return;
         }
 
-        fetchWeather();
-        setInterval(fetchWeather, 300000);
+        // 格式化新聞標題：1. 標題一 | 2. 標題二 | ...
+        const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
+        
+        // 放入 track 元素
+        track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
-        // ================= 即時新聞系統 =================
-        async function fetchNews() {
-            const url = 'https://news.mingpao.com/rss/ins/all.xml';
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-            
-            try {
-                const res = await fetch(proxyUrl);
-                const text = await res.text();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, 'text/xml');
-                const items = xml.querySelectorAll('item');
-                
-                // 取得今天與昨天的範圍
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
+        // 像素級勻速動畫計算 (恆定每秒 80px)
+        const trackWidth = track.scrollWidth;
+        const wrapperWidth = wrapper.offsetWidth;
+        const totalDistance = trackWidth + wrapperWidth;
+        const speedPxPerSec = 80; // 每秒走 80px
+        const totalDurationMs = (totalDistance / speedPxPerSec) * 1000;
 
-                let newsArray = [];
-                let count = 1;
+        let startTime = null;
 
-                items.forEach(item => {
-                    const pubDateStr = item.querySelector('pubDate').textContent;
-                    const pubDate = new Date(pubDateStr);
-                    if (pubDate >= yesterday) {
-                        const title = item.querySelector('title').textContent;
-                        newsArray.push(`${count}. ${title}`);
-                        count++;
-                    }
-                });
+        function animate(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const progress = elapsed / totalDurationMs;
 
-                const newsStr = newsArray.join(' &nbsp;&nbsp;|&nbsp;&nbsp; ');
-                const newsContent = document.getElementById('news-content');
-                newsContent.innerHTML = newsStr;
+          if (progress >= 1) {
+            // 完成一輪播放，自動刷新新聞數據並重新開始
+            fetchAndStartNewsMarquee();
+            return;
+          }
 
-                startNewsMarquee();
+          // 從右側進入 (wrapperWidth) 到完全離開左側 (-trackWidth)
+          const currentX = wrapperWidth - (progress * totalDistance);
+          track.style.transform = `translateX(${currentX}px)`;
 
-            } catch (error) {
-                console.error('News fetch error:', error);
-                document.getElementById('news-content').innerText = '即時新聞載入失敗，稍後重試...';
-                setTimeout(fetchNews, 10000);
-            }
+          newsAnimationId = requestAnimationFrame(animate);
         }
 
-        function startNewsMarquee() {
-            const container = document.getElementById('news-container');
-            const content = document.getElementById('news-content');
-            
-            const containerWidth = container.offsetWidth;
-            const contentWidth = content.offsetWidth;
-            
-            // 設定速度恆定為 80px/s
-            const distance = containerWidth + contentWidth;
-            const duration = distance / 80;
+        newsAnimationId = requestAnimationFrame(animate);
 
-            // 準備起始位置
-            content.style.transition = 'none';
-            content.style.transform = `translateX(${containerWidth}px)`;
+      } catch (e) {
+        console.error('News marquee error:', e);
+        track.innerText = '即時新聞載入失敗，將於稍後重試';
+        // 10 秒後重試
+        setTimeout(fetchAndStartNewsMarquee, 10000);
+      }
+    }
 
-            // 使用 requestAnimationFrame 確保瀏覽器已應用起始位置
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    content.style.transition = `transform ${duration}s linear`;
-                    content.style.transform = `translateX(-${contentWidth}px)`;
-                });
-            });
 
-            // 監聽動畫結束，自動重新抓取並再次播放
-            content.ontransitionend = (e) => {
-                if (e.propertyName === 'transform') {
-                    content.ontransitionend = null; // 清除監聽避免重複觸發
-                    fetchNews();
-                }
-            };
-        }
+    /* ==========================================
+       5. 頁面初始化與定時刷新器
+       ========================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. 初始化 DOM 佈局
+      initBusLayout();
 
-        fetchNews();
-    </script>
+      // 2. 立即更新時鐘並設置每秒更新
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // 3. 立即抓取巴士數據並設置每 30 秒更新
+      fetchBusData();
+      setInterval(fetchBusData, 30000);
+
+      // 4. 實時天氣數據並設置每 5 分鐘 (300,000ms) 更新
+      fetchWeatherData();
+      setInterval(fetchWeatherData, 300000);
+
+      // 5. 啟動即時新聞滾動跑馬燈
+      fetchAndStartNewsMarquee();
+    });
+  </script>
 </body>
 </html>
