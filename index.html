@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>資訊</title>
+  <title>板</title>
   <style>
     /* 全局樣式 */
     * {
@@ -297,8 +297,10 @@
       white-space: nowrap;
       font-size: 45px;
       font-weight: bold;
-      animation: marqueeLeft 180s linear infinite;
+      /* 秒數會由 JS 根據新聞長度動態計算覆蓋 */
+      animation: marqueeLeft 180s linear infinite; 
       padding-left: 100%;
+      will-change: transform; /* 硬體加速，確保流暢 */
     }
 
     @keyframes marqueeLeft {
@@ -553,12 +555,10 @@
       }
     }
 
-    // 新增雙備用通道解析 RSS
     async function fetchMingPaoNews() {
       const newsContent = document.getElementById('news-content');
       const targetRss = 'https://news.mingpao.com/rss/ins/all.xml';
       
-      // 優先使用高速專用 CORS 代理 corsproxy.io
       const proxies = [
         `https://corsproxy.io/?${encodeURIComponent(targetRss)}`,
         `https://api.allorigins.win/get?url=${encodeURIComponent(targetRss)}`
@@ -583,7 +583,6 @@
             const items = xmlDoc.querySelectorAll('item');
 
             const now = new Date();
-            // 計算昨天凌晨時間點
             const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
 
             let newsArr = [];
@@ -594,7 +593,6 @@
               const pubDateStr = item.querySelector('pubDate')?.textContent || '';
               const pubDate = pubDateStr ? new Date(pubDateStr) : null;
 
-              // 過濾保留今天與昨天的所有新聞
               if (title && (!pubDate || pubDate >= yesterdayStart)) {
                 newsArr.push(`${count}. ${title.trim()}`);
                 count++;
@@ -604,7 +602,14 @@
             if (newsArr.length > 0) {
               const separator = `<span class="news-separator">│</span>`;
               newsContent.innerHTML = newsArr.join(separator);
-              return; // 成功加載即退出函數
+
+              // 🌟【關鍵優化】：根據真實文字寬度動態算秒數，確保各款平板速度完全一致！
+              const SPEED_PIXELS_PER_SECOND = 80; // 每秒移動 80px（若覺得太快/慢，可改為 70 或 90）
+              const textWidth = newsContent.scrollWidth;
+              const duration = textWidth / SPEED_PIXELS_PER_SECOND;
+              newsContent.style.animationDuration = `${duration}s`;
+
+              return;
             }
           }
         } catch (e) {
@@ -612,7 +617,7 @@
         }
       }
 
-      newsContent.textContent = '即時新聞加載失敗，30秒後自動重新嘗試';
+      newsContent.textContent = '即時新聞加載失敗，稍後自動重新嘗試';
     }
 
     function init() {
