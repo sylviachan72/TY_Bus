@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>巴士與天氣</title>
+  <title>資訊</title>
   <style>
     /* 全局與重置樣式 */
     * {
@@ -338,7 +338,6 @@
       font-size: 45px;
       color: #FFFFFF;
       padding-left: 100%;
-      /* 依據新聞長短可微調動畫時間 */
       animation: newsMarquee 180s linear infinite;
     }
 
@@ -554,7 +553,6 @@
           warningKeys.forEach(key => {
             const w = warnData[key];
             if (w) {
-              // 若有 code 且存在於對應表中，優先使用對應表名稱，否則使用原名稱
               const displayName = (w.code && WEATHER_WARN_MAP[w.code]) ? WEATHER_WARN_MAP[w.code] : w.name;
               const badge = document.createElement('div');
               badge.className = 'warning-badge';
@@ -593,24 +591,21 @@
       document.getElementById('weather-update-time').textContent = `最後更新：${get24hTimeString()}（每5分鐘自動刷新）`;
     }
 
-    // 抓取明報全部即時新聞 (突破10條限制，並篩選今天及昨天)
+    // 抓取明報全部即時新聞 (使用 raw 代理繞過限制，並篩選今天及昨天)
     async function fetchNewsData() {
       const newsContent = document.getElementById('news-content');
       const rssUrl = 'https://news.mingpao.com/rss/ins/all.xml';
-      
-      // 改用 allorigins CORS 代理直接獲取原始 XML，不受第三方 JSON 轉換條數限制
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
 
       try {
         const res = await fetch(proxyUrl);
-        const data = await res.json();
+        if (!res.ok) throw new Error('Network response was not ok');
+        const xmlText = await res.text();
         
-        // 讀取原始 XML
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
         const items = xmlDoc.querySelectorAll("item");
         
-        // 設定今天及昨天的日期基準 (僅比較年月日)
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const yesterday = new Date(today);
@@ -626,12 +621,18 @@
             const pubDate = new Date(dateNode.textContent);
             const itemDate = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
             
-            // 如果新聞日期等於「今天」或「昨天」，則加入清單
             if (itemDate.getTime() === today.getTime() || itemDate.getTime() === yesterday.getTime()) {
               headlines.push(titleNode.textContent);
             }
           }
         });
+
+        if (headlines.length === 0 && items.length > 0) {
+          for (let i = 0; i < Math.min(30, items.length); i++) {
+            const titleNode = items[i].querySelector("title");
+            if (titleNode) headlines.push(titleNode.textContent);
+          }
+        }
 
         if (headlines.length > 0) {
           const fullMarqueeText = headlines.join(' <span class="news-item-sep">⚡</span> ');
@@ -641,7 +642,7 @@
         }
       } catch (err) {
         console.error('Error fetching RSS news:', err);
-        newsContent.textContent = '新聞載入中...';
+        newsContent.textContent = '即時新聞載入中（如持續未顯示請檢查網絡連線）';
       }
     }
 
