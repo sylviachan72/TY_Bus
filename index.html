@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>板</title>
+  <title>日常資訊儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -629,7 +629,8 @@
           
           if (tips.length >= 2 || fullContent.length > 80) {
             wrapper.className = 'swt-scroll-content swt-animated';
-            wrapper.innerHTML = `${fullContent}<br><br>${fullContent}`;
+            // 加入結尾的 <br><br>，讓兩半部高度完美對齊，解決跳動問題
+            wrapper.innerHTML = `${fullContent}<br><br>${fullContent}<br><br>`;
           } else {
             wrapper.className = 'swt-scroll-content';
             wrapper.innerHTML = fullContent;
