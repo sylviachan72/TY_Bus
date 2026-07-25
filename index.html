@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>資訊儀表板</title>
+  <title>儀表板</title>
   <style>
     /* 全局樣式 */
     * {
@@ -190,7 +190,7 @@
       justify-content: center;
       gap: 12px;
       line-height: 1.0;
-      margin-top: 0px; /* 零縫隙貼合 */
+      margin-top: 0px;
     }
 
     .temp-min { color: #4FC3F7; }
@@ -297,7 +297,7 @@
       white-space: nowrap;
       font-size: 45px;
       font-weight: bold;
-      animation: marqueeLeft 180s linear infinite; /* 極慢速適應大量新聞 */
+      animation: marqueeLeft 180s linear infinite;
       padding-left: 100%;
     }
 
@@ -447,7 +447,6 @@
               const timeStr = `${hh}:${mm}`;
               const colorClass = diffMin < 10 ? 'time-yellow' : 'time-white';
               
-              // 使用 <span class="eta-item"> 包裹，嚴格禁止時間與分鐘之間跨行斷開
               etaHtmlArr.push(`<span class="eta-item"><span class="time-white">${timeStr}</span>(<span class="${colorClass}">${diffMin}分鐘</span>)</span>`);
             }
           });
@@ -554,53 +553,66 @@
       }
     }
 
-    // 解析並顯示「今天及昨天」的所有即時新聞
+    // 新增雙備用通道解析 RSS
     async function fetchMingPaoNews() {
       const newsContent = document.getElementById('news-content');
       const targetRss = 'https://news.mingpao.com/rss/ins/all.xml';
       
-      // 使用可靠的代理進行完整 XML 解析，突破第三方 10 條上限
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetRss)}`;
+      // 優先使用高速專用 CORS 代理 corsproxy.io
+      const proxies = [
+        `https://corsproxy.io/?${encodeURIComponent(targetRss)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetRss)}`
+      ];
 
-      try {
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-        
-        if (data.contents) {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
-          const items = xmlDoc.querySelectorAll('item');
+      for (let proxyUrl of proxies) {
+        try {
+          const res = await fetch(proxyUrl);
+          if (!res.ok) continue;
 
-          const now = new Date();
-          // 計算昨天的凌晨 00:00:00 時間點
-          const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-
-          let newsArr = [];
-          let count = 1;
-
-          items.forEach(item => {
-            const title = item.querySelector('title')?.textContent || '';
-            const pubDateStr = item.querySelector('pubDate')?.textContent || '';
-            const pubDate = pubDateStr ? new Date(pubDateStr) : null;
-
-            // 只要新聞時間屬於「今天」或「昨天」（即大於等於昨天凌晨），全數保留
-            if (title && (!pubDate || pubDate >= yesterdayStart)) {
-              newsArr.push(`${count}. ${title.trim()}`);
-              count++;
-            }
-          });
-
-          if (newsArr.length > 0) {
-            const separator = `<span class="news-separator">│</span>`;
-            newsContent.innerHTML = newsArr.join(separator);
+          let xmlText = '';
+          if (proxyUrl.includes('allorigins')) {
+            const json = await res.json();
+            xmlText = json.contents;
           } else {
-            newsContent.textContent = '現時沒有今天及昨天的即時新聞';
+            xmlText = await res.text();
           }
+
+          if (xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            const items = xmlDoc.querySelectorAll('item');
+
+            const now = new Date();
+            // 計算昨天凌晨時間點
+            const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+            let newsArr = [];
+            let count = 1;
+
+            items.forEach(item => {
+              const title = item.querySelector('title')?.textContent || '';
+              const pubDateStr = item.querySelector('pubDate')?.textContent || '';
+              const pubDate = pubDateStr ? new Date(pubDateStr) : null;
+
+              // 過濾保留今天與昨天的所有新聞
+              if (title && (!pubDate || pubDate >= yesterdayStart)) {
+                newsArr.push(`${count}. ${title.trim()}`);
+                count++;
+              }
+            });
+
+            if (newsArr.length > 0) {
+              const separator = `<span class="news-separator">│</span>`;
+              newsContent.innerHTML = newsArr.join(separator);
+              return; // 成功加載即退出函數
+            }
+          }
+        } catch (e) {
+          console.warn('單個新聞代理失敗，嘗試下一個...', e);
         }
-      } catch (e) {
-        console.error('抓取新聞 RSS 失敗:', e);
-        newsContent.textContent = '即時新聞加載中，請稍後...';
       }
+
+      newsContent.textContent = '即時新聞加載失敗，30秒後自動重新嘗試';
     }
 
     function init() {
