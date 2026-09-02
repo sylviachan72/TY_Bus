@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1012儀表板</title>
+  <title>1018儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -37,11 +37,11 @@
       width: 50%;
       padding: 8px 12px;
       overflow-y: auto;
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE/Edge */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
     .column::-webkit-scrollbar {
-      display: none; /* Chrome / Safari */
+      display: none;
     }
 
     .left-column {
@@ -644,129 +644,76 @@
     }
 
     /* ==========================================
-       4. 即時新聞 (多重代理與備用新聞源自動切換)
+       4. 全新設計：使用專門的 RSS 轉 JSON 服務 (rss2json.com)
+       徹底解決跨域限制 (CORS) 與 XML 解析失敗的問題
        ========================================== */
-    async function fetchRSS(rssUrl) {
-      const proxies = [
-        u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-        u => `https://corsproxy.io/?${encodeURIComponent(u)}`
-      ];
-
-      for (const proxyFn of proxies) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000); // 6秒逾時切換
-          const res = await fetch(proxyFn(rssUrl), { signal: controller.signal });
-          clearTimeout(timeoutId);
-          if (!res.ok) continue;
-          
-          const text = await res.text();
-          if (text && text.includes('<item>')) {
-            return text;
-          }
-        } catch (e) {
-          // 自動嘗試下一個 Proxy 代理
-        }
-      }
-      throw new Error('All proxies failed for URL: ' + rssUrl);
-    }
-
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
 
+      // 暫停動畫以重新配置
       track.style.animation = 'none';
 
-      // 支援明報與香港電台（RTHK）雙來源，任一成功即顯示
-      const newsSources = [
+      // 備用的 RSS 來源清單 (明報與香港電台)
+      const rssFeeds = [
         'https://news.mingpao.com/rss/ins/all.xml',
         'https://rthk.hk/rthk/news/rss/c_expressnews.xml'
       ];
 
-      let xmlText = null;
-      for (const src of newsSources) {
+      let newsItems = [];
+
+      // 嘗試透過 rss2json API 抓取並自動轉換為 JSON 格式
+      for (const feed of rssFeeds) {
         try {
-          xmlText = await fetchRSS(src);
-          if (xmlText) break;
-        } catch (e) {
-          console.warn('News source failed:', src);
+          const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`;
+          const response = await fetch(apiUrl);
+          
+          if (!response.ok) continue; // 失敗則嘗試下一個來源
+          
+          const data = await response.json();
+          if (data.status === 'ok' && data.items && data.items.length > 0) {
+            newsItems = data.items;
+            break; // 成功獲取則跳出迴圈
+          }
+        } catch (err) {
+          console.warn('載入新聞來源失敗:', feed, err);
         }
       }
 
-      if (!xmlText) {
-        track.innerText = '即時新聞連線中，將於 10 秒後重試...';
-        setTimeout(fetchAndStartNewsMarquee, 10000);
+      // 處理抓取失敗的情況
+      if (newsItems.length === 0) {
+        track.innerText = '即時新聞載入中，請稍候...';
+        setTimeout(fetchAndStartNewsMarquee, 10000); // 10秒後重試
         return;
       }
 
-      try {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        const items = Array.from(xmlDoc.querySelectorAll('item'));
+      // 提取標題並組合跑馬燈文字 (只取前 25 則以確保流暢度)
+      const titles = newsItems.slice(0, 25).map(item => item.title.trim());
+      const formattedNews = titles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
+      
+      // 前後加上空格以確保滾動銜接平滑
+      track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
 
-        const now = new Date();
-        const yesterday = new Date(now);
-        yesterday.setDate(now.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0);
+      // 重新計算動畫位移量與時間
+      const wrapperWidth = wrapper.offsetWidth;
+      const trackWidth = track.scrollWidth;
+      const totalDistance = wrapperWidth + trackWidth;
+      const speedPxPerSec = 75; // 控制跑馬燈速度
+      const durationSec = totalDistance / speedPxPerSec;
 
-        const filteredTitles = [];
-        items.forEach(item => {
-          const title = item.querySelector('title')?.textContent;
-          const pubDateStr = item.querySelector('pubDate')?.textContent;
-          
-          if (title) {
-            if (pubDateStr) {
-              const pubDate = new Date(pubDateStr);
-              if (!isNaN(pubDate.getTime()) && pubDate >= yesterday) {
-                filteredTitles.push(title.trim());
-              } else if (isNaN(pubDate.getTime())) {
-                filteredTitles.push(title.trim());
-              }
-            } else {
-              filteredTitles.push(title.trim());
-            }
-          }
-        });
+      track.style.setProperty('--start-x', `${wrapperWidth}px`);
+      track.style.setProperty('--end-x', `-${trackWidth}px`);
 
-        // 若日期解析後數量為空，直接抓取前 30 條顯示
-        if (filteredTitles.length === 0) {
-          items.slice(0, 30).forEach(item => {
-            const title = item.querySelector('title')?.textContent;
-            if (title) filteredTitles.push(title.trim());
-          });
-        }
+      // 強制瀏覽器重繪 (Reflow) 以套用新設定
+      void track.offsetWidth;
 
-        if (filteredTitles.length === 0) {
-          track.innerText = '暫無即時新聞內容';
-          return;
-        }
+      // 啟動 CSS 動畫
+      track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
 
-        const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
-        track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
-
-        const wrapperWidth = wrapper.offsetWidth;
-        const trackWidth = track.scrollWidth;
-        const totalDistance = wrapperWidth + trackWidth;
-        const speedPxPerSec = 80;
-        const durationSec = totalDistance / speedPxPerSec;
-
-        track.style.setProperty('--start-x', `${wrapperWidth}px`);
-        track.style.setProperty('--end-x', `-${trackWidth}px`);
-
-        void track.offsetWidth;
-
-        track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
-
-        track.onanimationend = () => {
-          fetchAndStartNewsMarquee();
-        };
-
-      } catch (e) {
-        console.error('News parse error:', e);
-        track.innerText = '即時新聞載入失敗，將於稍後重試';
-        setTimeout(fetchAndStartNewsMarquee, 10000);
-      }
+      // 動畫結束後自動重新抓取最新新聞並無限循環
+      track.onanimationend = () => {
+        fetchAndStartNewsMarquee();
+      };
     }
 
     /* ==========================================
@@ -774,13 +721,17 @@
        ========================================== */
     window.addEventListener('DOMContentLoaded', () => {
       initBusLayout();
+      
       updateClock();
-      setInterval(updateClock, 1000);
+      setInterval(updateClock, 1000); // 每秒更新時鐘
+      
       fetchBusData();
-      setInterval(fetchBusData, 30000);
+      setInterval(fetchBusData, 30000); // 每 30 秒更新巴士
+      
       fetchWeatherData();
-      setInterval(fetchWeatherData, 300000);
-      fetchAndStartNewsMarquee();
+      setInterval(fetchWeatherData, 300000); // 每 5 分鐘更新天氣
+      
+      fetchAndStartNewsMarquee(); // 跑馬燈擁有獨立的迴圈與重試機制
     });
   </script>
 </body>
