@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1102儀表板</title>
+  <title>1110儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -645,7 +645,7 @@
     }
 
     /* ==========================================
-       4. RTHK RSS 即時新聞 (支援多頻道合併與排序)
+       4. RTHK RSS 即時新聞 (改用 AllOrigins 代理)
        ========================================== */
     const RTHK_RSS_URLS = [
       'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml',          // 本地新聞
@@ -665,10 +665,10 @@
       try {
         let allNewsItems = [];
 
-        // 同時抓取所有指定的 RTHK RSS 頻道
+        // 同時抓取所有指定的 RTHK RSS 頻道 (改用 AllOrigins 代理)
         for (const url of RTHK_RSS_URLS) {
           try {
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
             const res = await fetch(proxyUrl);
             if (!res.ok) continue;
             const xmlText = await res.text();
