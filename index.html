@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TY0902儀表板</title>
+  <title>0902儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -645,7 +645,7 @@
     }
 
     /* ==========================================
-       4. 明報 RSS 即時新聞 (改用 AllOrigins 代理抓取完整清單)
+       4. 明報 RSS 即時新聞 (改用穩定的 rss2json API)
        ========================================== */
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
@@ -655,40 +655,35 @@
       track.style.animation = 'none';
 
       try {
-        // 使用 allorigins 代理獲取完整的 RSS 原始檔，解除 10 筆限制
+        // 使用專門解析 RSS 的免費服務，避開 CORS 問題
         const rssUrl = 'https://news.mingpao.com/rss/ins/all.xml';
-        const apiUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
         
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error('News API fetch error');
         
-        // 解析完整的 XML
-        const xmlText = await res.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        const items = Array.from(xmlDoc.querySelectorAll('item'));
+        const data = await res.json();
+        if (data.status !== 'ok') throw new Error('RSS conversion failed');
 
-        // 定義今天與昨天的時間範圍
+        const items = data.items || [];
         const now = new Date();
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0); // 昨天的 00:00:00
+        yesterday.setHours(0, 0, 0, 0);
 
         const filteredTitles = [];
-        
-        // 遍歷所有新聞項目，過濾出昨天與今天的內容
         items.forEach(item => {
-          const title = item.querySelector('title')?.textContent;
-          const pubDateStr = item.querySelector('pubDate')?.textContent;
+          const title = item.title;
+          const pubDateStr = item.pubDate; // 格式通常為 "YYYY-MM-DD HH:mm:ss"
           
           if (title) {
             if (pubDateStr) {
-              const pubDate = new Date(pubDateStr);
+              // 將字串轉為日期物件，並相容 Safari (把 - 換成 /)
+              const pubDate = new Date(pubDateStr.replace(/-/g, '/'));
               if (pubDate >= yesterday) {
                 filteredTitles.push(title.trim());
               }
             } else {
-              // 假如沒有時間戳，也一併加入
               filteredTitles.push(title.trim());
             }
           }
@@ -699,11 +694,10 @@
           return;
         }
 
-        // 串接所有符合條件的新聞標題
         const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
         track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
-        // 計算動畫需要的參數
+        // 計算動畫需要的參數 (透過 CSS 變數傳入動畫)
         const wrapperWidth = wrapper.offsetWidth;
         const trackWidth = track.scrollWidth;
         const totalDistance = wrapperWidth + trackWidth;
