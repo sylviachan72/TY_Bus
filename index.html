@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1039儀表板</title>
+  <title>1044儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -645,17 +645,21 @@
     }
 
     /* ==========================================
-       4. 明報 RSS 即時新聞 (抓取今天及昨天全部新聞)
+       4. 明報 RSS 即時新聞 (改用更穩定的 AllOrigins 代理)
        ========================================== */
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
 
+      // 暫停動畫以重新配置
       track.style.animation = 'none';
 
       try {
-        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
-        const res = await fetch(rssUrl);
+        // 改用 api.allorigins.win 作為代理，並加上時間戳防止快取
+        const targetUrl = 'https://news.mingpao.com/rss/ins/all.xml';
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}&_t=${Date.now()}`;
+        
+        const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error('News RSS fetch error');
         
         const xmlText = await res.text();
@@ -663,11 +667,10 @@
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         const items = Array.from(xmlDoc.querySelectorAll('item'));
 
-        // 計算「昨天凌晨 00:00:00」的時間點，確保今天與昨天（48小時內）新聞全收錄
         const now = new Date();
-        const startOfYesterday = new Date(now);
-        startOfYesterday.setDate(now.getDate() - 1);
-        startOfYesterday.setHours(0, 0, 0, 0);
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
 
         const filteredTitles = [];
         items.forEach(item => {
@@ -676,8 +679,7 @@
           if (title) {
             if (pubDateStr) {
               const pubDate = new Date(pubDateStr);
-              // 容許時間戳有效且大於昨天凌晨，或者時間解析失敗但屬於RSS前列的新聞
-              if (isNaN(pubDate.getTime()) || pubDate >= startOfYesterday) {
+              if (pubDate >= yesterday) {
                 filteredTitles.push(title.trim());
               }
             } else {
@@ -686,17 +688,15 @@
           }
         });
 
-        // 如果過濾後為空（以防 RSS 時間格式完全不對），則退而求其次抓取全部現存 RSS 條目
-        const finalTitles = filteredTitles.length > 0 ? filteredTitles : items.map(i => i.querySelector('title')?.textContent?.trim()).filter(Boolean);
-
-        if (finalTitles.length === 0) {
+        if (filteredTitles.length === 0) {
           track.innerText = '暫無即時新聞內容';
           return;
         }
 
-        const formattedNews = finalTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
+        const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
         track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
+        // 計算動畫需要的參數 (透過 CSS 變數傳入動畫)
         const wrapperWidth = wrapper.offsetWidth;
         const trackWidth = track.scrollWidth;
         const totalDistance = wrapperWidth + trackWidth;
@@ -706,10 +706,13 @@
         track.style.setProperty('--start-x', `${wrapperWidth}px`);
         track.style.setProperty('--end-x', `-${trackWidth}px`);
 
+        // 強制瀏覽器重繪 (Reflow) 以重啟動畫
         void track.offsetWidth;
 
+        // 綁定 CSS 動畫
         track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
 
+        // 監聽動畫結束事件，結束後重新抓取並播放
         track.onanimationend = () => {
           fetchAndStartNewsMarquee();
         };
