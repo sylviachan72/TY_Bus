@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1032儀表板</title>
+  <title>1039儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -37,11 +37,11 @@
       width: 50%;
       padding: 8px 12px;
       overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
     }
     .column::-webkit-scrollbar {
-      display: none;
+      display: none; /* Chrome / Safari */
     }
 
     .left-column {
@@ -82,6 +82,7 @@
       gap: 8px;
     }
 
+    /* 巴士號碼圓角標籤 */
     .bus-tag {
       padding: 2px 12px;
       border-radius: 8px;
@@ -94,6 +95,7 @@
       color: #ffffff;
     }
 
+    /* 巴士班次容器 */
     .bus-eta-container {
       font-size: 32px;
       color: #ffffff;
@@ -103,6 +105,7 @@
       row-gap: 4px;
     }
 
+    /* 每一組班次 (到達時間 + 倒數分鐘)，強制不跨行拆分 */
     .eta-group {
       white-space: nowrap;
       display: inline-block;
@@ -112,6 +115,7 @@
       color: #ffffff;
     }
 
+    /* 少於10分鐘顯示芒果黃，其餘顯示白色 */
     .eta-min-yellow {
       color: #FFC107;
       font-weight: bold;
@@ -176,6 +180,7 @@
       font-weight: 500;
     }
 
+    /* 天氣數據列 (零縫隙極致緊湊) */
     .weather-data-box {
       width: 100%;
       text-align: center;
@@ -212,15 +217,16 @@
     }
 
     .temp-min {
-      color: #4D94FF;
+      color: #4D94FF; /* 鮮藍色 */
       font-weight: bold;
     }
 
     .temp-max {
-      color: #FF4D4D;
+      color: #FF4D4D; /* 鮮紅色 */
       font-weight: bold;
     }
 
+    /* 天氣警告與特別提示區塊 */
     .info-block {
       width: 100%;
       text-align: left;
@@ -245,6 +251,7 @@
       text-align: left;
     }
 
+    /* 特別天氣提示跑馬燈容器 */
     .swt-container {
       font-size: 30px;
       color: #ffffff;
@@ -272,7 +279,7 @@
     }
 
     /* ==========================================
-       底部：即時新聞跑馬燈
+       底部：即時新聞跑馬燈 (使用 CSS 硬件加速)
        ========================================== */
     .news-bar {
       height: 65px;
@@ -308,6 +315,7 @@
       align-items: center;
     }
 
+    /* CSS 硬件加速跑馬燈軌道 */
     .news-track {
       position: absolute;
       white-space: nowrap;
@@ -315,10 +323,12 @@
       color: #ffffff;
       display: flex;
       align-items: center;
+      /* 開啟 GPU 硬件加速 */
       will-change: transform;
       transform: translateZ(0);
     }
 
+    /* 動態建立動畫位移量 */
     @keyframes marqueeNews {
       0% { transform: translateX(var(--start-x)); }
       100% { transform: translateX(var(--end-x)); }
@@ -327,18 +337,22 @@
 </head>
 <body>
 
+  <!-- 主內容區劃分為兩欄 -->
   <div class="main-container">
     
     <!-- 左欄：巴士實時報站資訊 -->
     <div class="column left-column">
       <div class="update-header" id="bus-update-header">最後更新：--:--:--（每30秒自動刷新）</div>
-      <div class="bus-list" id="bus-list-container"></div>
+      <div class="bus-list" id="bus-list-container">
+        <!-- 由 JavaScript 自動動態生成巴士路線 -->
+      </div>
     </div>
 
     <!-- 右欄：時間與天氣資訊 -->
     <div class="column weather-column">
       <div class="update-header" id="weather-update-header">最後更新：--:--:--（每5分鐘自動刷新）</div>
       
+      <!-- 現在時間與日期 -->
       <div class="time-section">
         <div class="time-display">
           <span class="ampm" id="clock-ampm">--</span>
@@ -347,6 +361,7 @@
         <div class="date-display" id="date-display">----年--月--日 星期-</div>
       </div>
 
+      <!-- 天氣數據列 (零縫隙) -->
       <div class="weather-data-box">
         <div class="weather-row-1">
           <img id="wx-icon" class="weather-icon" src="" alt="" style="display:none;">
@@ -359,12 +374,14 @@
         </div>
       </div>
 
+      <!-- 天氣警告區塊 -->
       <div class="info-block">
         <div id="warning-container">
           <div class="warning-none">現時沒有生效的警告</div>
         </div>
       </div>
 
+      <!-- 特別天氣提示區塊 -->
       <div class="info-block" style="margin-top: 10px;">
         <div id="swt-container" class="swt-container">
           <div class="swt-none">現時沒有特別天氣提示</div>
@@ -374,10 +391,11 @@
     </div>
   </div>
 
+  <!-- 底部：即時新聞跑馬燈 -->
   <div class="news-bar">
     <div class="news-label">即時新聞</div>
     <div class="news-track-wrapper" id="news-wrapper">
-      <div class="news-track" id="news-track">正在提取 RTHK RSS 新聞...</div>
+      <div class="news-track" id="news-track">正在載入即時新聞...</div>
     </div>
   </div>
 
@@ -500,6 +518,7 @@
 
       document.getElementById('date-display').innerText = `${year}年${month}月${day}日 ${weekStr}`;
     }
+
 
     /* ==========================================
        3. 天氣報告與警告邏輯
@@ -626,95 +645,62 @@
     }
 
     /* ==========================================
-       4. 直接提取 RTHK RSS 新聞並支援多分類輪替
+       4. 明報 RSS 即時新聞 (抓取今天及昨天全部新聞)
        ========================================== */
-    async function fetchRawRSS(rssUrl) {
-      const proxies = [
-        u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-      ];
-
-      for (const proxyFn of proxies) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const res = await fetch(proxyFn(rssUrl), { signal: controller.signal });
-          clearTimeout(timeoutId);
-
-          if (!res.ok) continue;
-          const xmlText = await res.text();
-          
-          if (xmlText && (xmlText.includes('<rss') || xmlText.includes('<feed') || xmlText.includes('<item>'))) {
-            return xmlText;
-          }
-        } catch (e) {
-          // 嘗試下一個代理
-        }
-      }
-      throw new Error('無法讀取 RSS 來源');
-    }
-
-    // 設定您提供的 RTHK 5 個新聞 RSS 來源清單
-    const rthkFeeds = [
-      { name: '本地新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml' },
-      { name: '大中華新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_greaterchina.xml' },
-      { name: '國際新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_cinternational.xml' },
-      { name: '財經新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_cfinance.xml' },
-      { name: '體育新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_csport.xml' }
-    ];
-
-    let currentFeedIndex = 0;
-
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
 
       track.style.animation = 'none';
 
-      // 每次輪流切換下一個新聞分類
-      const targetFeed = rthkFeeds[currentFeedIndex];
-      currentFeedIndex = (currentFeedIndex + 1) % rthkFeeds.length;
-
-      let xmlString = null;
       try {
-        xmlString = await fetchRawRSS(targetFeed.url);
-      } catch (e) {
-        console.warn(`RTHK 來源 [${targetFeed.name}] 提取失敗`);
-      }
-
-      if (!xmlString) {
-        track.innerText = `[${targetFeed.name}] 讀取中，切換下一個類別...`;
-        setTimeout(fetchAndStartNewsMarquee, 3000);
-        return;
-      }
-
-      try {
+        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
+        const res = await fetch(rssUrl);
+        if (!res.ok) throw new Error('News RSS fetch error');
+        
+        const xmlText = await res.text();
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         const items = Array.from(xmlDoc.querySelectorAll('item'));
 
-        if (items.length === 0) {
-          track.innerText = `[${targetFeed.name}] 暫無即時新聞`;
-          setTimeout(fetchAndStartNewsMarquee, 5000);
-          return;
-        }
+        // 計算「昨天凌晨 00:00:00」的時間點，確保今天與昨天（48小時內）新聞全收錄
+        const now = new Date();
+        const startOfYesterday = new Date(now);
+        startOfYesterday.setDate(now.getDate() - 1);
+        startOfYesterday.setHours(0, 0, 0, 0);
 
-        const titles = [];
+        const filteredTitles = [];
         items.forEach(item => {
-          const titleEl = item.querySelector('title');
-          if (titleEl && titleEl.textContent) {
-            titles.push(titleEl.textContent.trim());
+          const title = item.querySelector('title')?.textContent;
+          const pubDateStr = item.querySelector('pubDate')?.textContent;
+          if (title) {
+            if (pubDateStr) {
+              const pubDate = new Date(pubDateStr);
+              // 容許時間戳有效且大於昨天凌晨，或者時間解析失敗但屬於RSS前列的新聞
+              if (isNaN(pubDate.getTime()) || pubDate >= startOfYesterday) {
+                filteredTitles.push(title.trim());
+              }
+            } else {
+              filteredTitles.push(title.trim());
+            }
           }
         });
 
-        const categoryPrefix = `【${targetFeed.name}】`;
-        const formattedNews = titles.slice(0, 20).map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
-        track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${categoryPrefix} &nbsp; ${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
+        // 如果過濾後為空（以防 RSS 時間格式完全不對），則退而求其次抓取全部現存 RSS 條目
+        const finalTitles = filteredTitles.length > 0 ? filteredTitles : items.map(i => i.querySelector('title')?.textContent?.trim()).filter(Boolean);
+
+        if (finalTitles.length === 0) {
+          track.innerText = '暫無即時新聞內容';
+          return;
+        }
+
+        const formattedNews = finalTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
+        track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
         const wrapperWidth = wrapper.offsetWidth;
         const trackWidth = track.scrollWidth;
         const totalDistance = wrapperWidth + trackWidth;
-        const speedPxPerSec = 75;
+        const speedPxPerSec = 80;
         const durationSec = totalDistance / speedPxPerSec;
 
         track.style.setProperty('--start-x', `${wrapperWidth}px`);
@@ -724,15 +710,14 @@
 
         track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
 
-        // 當這個分類跑馬燈播完一次後，自動輪播下一個新聞分類
         track.onanimationend = () => {
           fetchAndStartNewsMarquee();
         };
 
       } catch (e) {
-        console.error('XML 解析錯誤:', e);
-        track.innerText = `[${targetFeed.name}] 解析失敗，跳至下一個類別`;
-        setTimeout(fetchAndStartNewsMarquee, 4000);
+        console.error('News marquee error:', e);
+        track.innerText = '即時新聞載入失敗，將於稍後重試';
+        setTimeout(fetchAndStartNewsMarquee, 10000);
       }
     }
 
