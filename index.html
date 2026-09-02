@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1018儀表板</title>
+  <title>1025儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -82,7 +82,6 @@
       gap: 8px;
     }
 
-    /* 巴士號碼圓角標籤 */
     .bus-tag {
       padding: 2px 12px;
       border-radius: 8px;
@@ -95,7 +94,6 @@
       color: #ffffff;
     }
 
-    /* 巴士班次容器 */
     .bus-eta-container {
       font-size: 32px;
       color: #ffffff;
@@ -105,7 +103,6 @@
       row-gap: 4px;
     }
 
-    /* 每一組班次 (到達時間 + 倒數分鐘)，強制不跨行拆分 */
     .eta-group {
       white-space: nowrap;
       display: inline-block;
@@ -115,7 +112,6 @@
       color: #ffffff;
     }
 
-    /* 少於10分鐘顯示芒果黃，其餘顯示白色 */
     .eta-min-yellow {
       color: #FFC107;
       font-weight: bold;
@@ -180,7 +176,6 @@
       font-weight: 500;
     }
 
-    /* 天氣數據列 (零縫隙極致緊湊) */
     .weather-data-box {
       width: 100%;
       text-align: center;
@@ -217,16 +212,15 @@
     }
 
     .temp-min {
-      color: #4D94FF; /* 鮮藍色 */
+      color: #4D94FF;
       font-weight: bold;
     }
 
     .temp-max {
-      color: #FF4D4D; /* 鮮紅色 */
+      color: #FF4D4D;
       font-weight: bold;
     }
 
-    /* 天氣警告與特別提示區塊 */
     .info-block {
       width: 100%;
       text-align: left;
@@ -251,7 +245,6 @@
       text-align: left;
     }
 
-    /* 特別天氣提示跑馬燈容器 */
     .swt-container {
       font-size: 30px;
       color: #ffffff;
@@ -279,7 +272,7 @@
     }
 
     /* ==========================================
-       底部：即時新聞跑馬燈 (使用 CSS 硬件加速)
+       底部：即時新聞跑馬燈
        ========================================== */
     .news-bar {
       height: 65px;
@@ -315,7 +308,6 @@
       align-items: center;
     }
 
-    /* CSS 硬件加速跑馬燈軌道 */
     .news-track {
       position: absolute;
       white-space: nowrap;
@@ -323,12 +315,10 @@
       color: #ffffff;
       display: flex;
       align-items: center;
-      /* 開啟 GPU 硬件加速 */
       will-change: transform;
       transform: translateZ(0);
     }
 
-    /* 動態建立動畫位移量 */
     @keyframes marqueeNews {
       0% { transform: translateX(var(--start-x)); }
       100% { transform: translateX(var(--end-x)); }
@@ -337,22 +327,18 @@
 </head>
 <body>
 
-  <!-- 主內容區劃分為兩欄 -->
   <div class="main-container">
     
     <!-- 左欄：巴士實時報站資訊 -->
     <div class="column left-column">
       <div class="update-header" id="bus-update-header">最後更新：--:--:--（每30秒自動刷新）</div>
-      <div class="bus-list" id="bus-list-container">
-        <!-- 由 JavaScript 自動動態生成巴士路線 -->
-      </div>
+      <div class="bus-list" id="bus-list-container"></div>
     </div>
 
     <!-- 右欄：時間與天氣資訊 -->
     <div class="column weather-column">
       <div class="update-header" id="weather-update-header">最後更新：--:--:--（每5分鐘自動刷新）</div>
       
-      <!-- 現在時間與日期 -->
       <div class="time-section">
         <div class="time-display">
           <span class="ampm" id="clock-ampm">--</span>
@@ -361,7 +347,6 @@
         <div class="date-display" id="date-display">----年--月--日 星期-</div>
       </div>
 
-      <!-- 天氣數據列 (零縫隙) -->
       <div class="weather-data-box">
         <div class="weather-row-1">
           <img id="wx-icon" class="weather-icon" src="" alt="" style="display:none;">
@@ -374,14 +359,12 @@
         </div>
       </div>
 
-      <!-- 天氣警告區塊 -->
       <div class="info-block">
         <div id="warning-container">
           <div class="warning-none">現時沒有生效的警告</div>
         </div>
       </div>
 
-      <!-- 特別天氣提示區塊 -->
       <div class="info-block" style="margin-top: 10px;">
         <div id="swt-container" class="swt-container">
           <div class="swt-none">現時沒有特別天氣提示</div>
@@ -391,11 +374,10 @@
     </div>
   </div>
 
-  <!-- 底部：即時新聞跑馬燈 -->
   <div class="news-bar">
     <div class="news-label">即時新聞</div>
     <div class="news-track-wrapper" id="news-wrapper">
-      <div class="news-track" id="news-track">正在載入即時新聞...</div>
+      <div class="news-track" id="news-track">正在直接提取 RSS 新聞...</div>
     </div>
   </div>
 
@@ -644,76 +626,111 @@
     }
 
     /* ==========================================
-       4. 全新設計：使用專門的 RSS 轉 JSON 服務 (rss2json.com)
-       徹底解決跨域限制 (CORS) 與 XML 解析失敗的問題
+       4. 直接提取 RSS (XML) 原始檔案並透過 DOMParser 解析
        ========================================== */
+    async function fetchRawRSS(rssUrl) {
+      // 多重代理備援，確保總能成功抓回原始 XML 內容
+      const proxies = [
+        u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+      ];
+
+      for (const proxyFn of proxies) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const res = await fetch(proxyFn(rssUrl), { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) continue;
+          const xmlText = await res.text();
+          
+          // 驗證是否為有效的 RSS/XML 內容
+          if (xmlText && (xmlText.includes('<rss') || xmlText.includes('<feed') || xmlText.includes('<item>'))) {
+            return xmlText;
+          }
+        } catch (e) {
+          // 繼續嘗試下一個代理
+        }
+      }
+      throw new Error('無法讀取 RSS 來源');
+    }
+
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
 
-      // 暫停動畫以重新配置
       track.style.animation = 'none';
 
-      // 備用的 RSS 來源清單 (明報與香港電台)
+      // 支援多個新聞 RSS 來源 (若第一個失敗會自動嘗試下一個)
       const rssFeeds = [
         'https://news.mingpao.com/rss/ins/all.xml',
         'https://rthk.hk/rthk/news/rss/c_expressnews.xml'
       ];
 
-      let newsItems = [];
-
-      // 嘗試透過 rss2json API 抓取並自動轉換為 JSON 格式
+      let xmlString = null;
       for (const feed of rssFeeds) {
         try {
-          const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`;
-          const response = await fetch(apiUrl);
-          
-          if (!response.ok) continue; // 失敗則嘗試下一個來源
-          
-          const data = await response.json();
-          if (data.status === 'ok' && data.items && data.items.length > 0) {
-            newsItems = data.items;
-            break; // 成功獲取則跳出迴圈
-          }
-        } catch (err) {
-          console.warn('載入新聞來源失敗:', feed, err);
+          xmlString = await fetchRawRSS(feed);
+          if (xmlString) break;
+        } catch (e) {
+          console.warn('RSS 來源提取失敗:', feed);
         }
       }
 
-      // 處理抓取失敗的情況
-      if (newsItems.length === 0) {
-        track.innerText = '即時新聞載入中，請稍候...';
-        setTimeout(fetchAndStartNewsMarquee, 10000); // 10秒後重試
+      if (!xmlString) {
+        track.innerText = '即時新聞讀取中，將於 10 秒後重試...';
+        setTimeout(fetchAndStartNewsMarquee, 10000);
         return;
       }
 
-      // 提取標題並組合跑馬燈文字 (只取前 25 則以確保流暢度)
-      const titles = newsItems.slice(0, 25).map(item => item.title.trim());
-      const formattedNews = titles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
-      
-      // 前後加上空格以確保滾動銜接平滑
-      track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
+      try {
+        // 使用瀏覽器內置的 DOMParser 直接將 XML 字串解析為 DOM 物件
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+        const items = Array.from(xmlDoc.querySelectorAll('item'));
 
-      // 重新計算動畫位移量與時間
-      const wrapperWidth = wrapper.offsetWidth;
-      const trackWidth = track.scrollWidth;
-      const totalDistance = wrapperWidth + trackWidth;
-      const speedPxPerSec = 75; // 控制跑馬燈速度
-      const durationSec = totalDistance / speedPxPerSec;
+        if (items.length === 0) {
+          track.innerText = '暫無即時新聞內容';
+          return;
+        }
 
-      track.style.setProperty('--start-x', `${wrapperWidth}px`);
-      track.style.setProperty('--end-x', `-${trackWidth}px`);
+        // 直接從 XML 的 <title> 標籤提取新聞標題
+        const titles = [];
+        items.forEach(item => {
+          const titleEl = item.querySelector('title');
+          if (titleEl && titleEl.textContent) {
+            titles.push(titleEl.textContent.trim());
+          }
+        });
 
-      // 強制瀏覽器重繪 (Reflow) 以套用新設定
-      void track.offsetWidth;
+        const formattedNews = titles.slice(0, 30).map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
+        track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
 
-      // 啟動 CSS 動畫
-      track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
+        // 重新計算跑馬燈滾動長度與動畫速度
+        const wrapperWidth = wrapper.offsetWidth;
+        const trackWidth = track.scrollWidth;
+        const totalDistance = wrapperWidth + trackWidth;
+        const speedPxPerSec = 75;
+        const durationSec = totalDistance / speedPxPerSec;
 
-      // 動畫結束後自動重新抓取最新新聞並無限循環
-      track.onanimationend = () => {
-        fetchAndStartNewsMarquee();
-      };
+        track.style.setProperty('--start-x', `${wrapperWidth}px`);
+        track.style.setProperty('--end-x', `-${trackWidth}px`);
+
+        void track.offsetWidth;
+
+        track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
+
+        // 動畫結束後自動重新執行以循環更新
+        track.onanimationend = () => {
+          fetchAndStartNewsMarquee();
+        };
+
+      } catch (e) {
+        console.error('XML 解析錯誤:', e);
+        track.innerText = '即時新聞解析失敗，將於稍後重試';
+        setTimeout(fetchAndStartNewsMarquee, 10000);
+      }
     }
 
     /* ==========================================
@@ -721,17 +738,13 @@
        ========================================== */
     window.addEventListener('DOMContentLoaded', () => {
       initBusLayout();
-      
       updateClock();
-      setInterval(updateClock, 1000); // 每秒更新時鐘
-      
+      setInterval(updateClock, 1000);
       fetchBusData();
-      setInterval(fetchBusData, 30000); // 每 30 秒更新巴士
-      
+      setInterval(fetchBusData, 30000);
       fetchWeatherData();
-      setInterval(fetchWeatherData, 300000); // 每 5 分鐘更新天氣
-      
-      fetchAndStartNewsMarquee(); // 跑馬燈擁有獨立的迴圈與重試機制
+      setInterval(fetchWeatherData, 300000);
+      fetchAndStartNewsMarquee();
     });
   </script>
 </body>
