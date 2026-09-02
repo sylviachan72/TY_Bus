@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1044儀表板</title>
+  <title>1102儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -395,7 +395,7 @@
   <div class="news-bar">
     <div class="news-label">即時新聞</div>
     <div class="news-track-wrapper" id="news-wrapper">
-      <div class="news-track" id="news-track">正在載入即時新聞...</div>
+      <div class="news-track" id="news-track">正在載入 RTHK 即時新聞...</div>
     </div>
   </div>
 
@@ -645,8 +645,16 @@
     }
 
     /* ==========================================
-       4. 明報 RSS 即時新聞 (改用更穩定的 AllOrigins 代理)
+       4. RTHK RSS 即時新聞 (支援多頻道合併與排序)
        ========================================== */
+    const RTHK_RSS_URLS = [
+      'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml',          // 本地新聞
+      'https://rthk.hk/rthk/news/rss/c_expressnews_greaterchina.xml',     // 大中華新聞
+      'https://rthk.hk/rthk/news/rss/c_expressnews_cinternational.xml',   // 國際新聞
+      'https://rthk.hk/rthk/news/rss/c_expressnews_cfinance.xml',         // 財經新聞
+      'https://rthk.hk/rthk/news/rss/c_expressnews_csport.xml'            // 體育新聞
+    ];
+
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
@@ -655,45 +663,53 @@
       track.style.animation = 'none';
 
       try {
-        // 改用 api.allorigins.win 作為代理，並加上時間戳防止快取
-        const targetUrl = 'https://news.mingpao.com/rss/ins/all.xml';
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}&_t=${Date.now()}`;
-        
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error('News RSS fetch error');
-        
-        const xmlText = await res.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        const items = Array.from(xmlDoc.querySelectorAll('item'));
+        let allNewsItems = [];
 
+        // 同時抓取所有指定的 RTHK RSS 頻道
+        for (const url of RTHK_RSS_URLS) {
+          try {
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+            const res = await fetch(proxyUrl);
+            if (!res.ok) continue;
+            const xmlText = await res.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            const items = Array.from(xmlDoc.querySelectorAll('item'));
+
+            items.forEach(item => {
+              const title = item.querySelector('title')?.textContent;
+              const pubDateStr = item.querySelector('pubDate')?.textContent;
+              if (title) {
+                allNewsItems.push({
+                  title: title.trim(),
+                  date: pubDateStr ? new Date(pubDateStr) : new Date(0)
+                });
+              }
+            });
+          } catch (err) {
+            console.error('Failed to fetch individual RTHK RSS:', url, err);
+          }
+        }
+
+        if (allNewsItems.length === 0) {
+          throw new Error('No news items found from RTHK RSS');
+        }
+
+        // 依照發布時間由新到舊排序
+        allNewsItems.sort((a, b) => b.date - a.date);
+
+        // 過濾掉超過 24 小時的舊新聞（確保只看最新）
         const now = new Date();
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0);
 
-        const filteredTitles = [];
-        items.forEach(item => {
-          const title = item.querySelector('title')?.textContent;
-          const pubDateStr = item.querySelector('pubDate')?.textContent;
-          if (title) {
-            if (pubDateStr) {
-              const pubDate = new Date(pubDateStr);
-              if (pubDate >= yesterday) {
-                filteredTitles.push(title.trim());
-              }
-            } else {
-              filteredTitles.push(title.trim());
-            }
-          }
-        });
-
-        if (filteredTitles.length === 0) {
-          track.innerText = '暫無即時新聞內容';
-          return;
+        let filtered = allNewsItems.filter(item => item.date >= yesterday);
+        if (filtered.length === 0) {
+          filtered = allNewsItems; // 如果篩選完為空，則保留全部抓到的內容
         }
 
-        const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
+        const titles = filtered.map(item => item.title);
+        const formattedNews = titles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
         track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
         // 計算動畫需要的參數 (透過 CSS 變數傳入動畫)
@@ -718,7 +734,7 @@
         };
 
       } catch (e) {
-        console.error('News marquee error:', e);
+        console.error('RTHK News marquee error:', e);
         track.innerText = '即時新聞載入失敗，將於稍後重試';
         setTimeout(fetchAndStartNewsMarquee, 10000);
       }
