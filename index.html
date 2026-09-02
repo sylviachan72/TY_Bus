@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1025儀表板</title>
+  <title>1032儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -377,7 +377,7 @@
   <div class="news-bar">
     <div class="news-label">即時新聞</div>
     <div class="news-track-wrapper" id="news-wrapper">
-      <div class="news-track" id="news-track">正在直接提取 RSS 新聞...</div>
+      <div class="news-track" id="news-track">正在提取 RTHK RSS 新聞...</div>
     </div>
   </div>
 
@@ -626,10 +626,9 @@
     }
 
     /* ==========================================
-       4. 直接提取 RSS (XML) 原始檔案並透過 DOMParser 解析
+       4. 直接提取 RTHK RSS 新聞並支援多分類輪替
        ========================================== */
     async function fetchRawRSS(rssUrl) {
-      // 多重代理備援，確保總能成功抓回原始 XML 內容
       const proxies = [
         u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
         u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
@@ -645,16 +644,26 @@
           if (!res.ok) continue;
           const xmlText = await res.text();
           
-          // 驗證是否為有效的 RSS/XML 內容
           if (xmlText && (xmlText.includes('<rss') || xmlText.includes('<feed') || xmlText.includes('<item>'))) {
             return xmlText;
           }
         } catch (e) {
-          // 繼續嘗試下一個代理
+          // 嘗試下一個代理
         }
       }
       throw new Error('無法讀取 RSS 來源');
     }
+
+    // 設定您提供的 RTHK 5 個新聞 RSS 來源清單
+    const rthkFeeds = [
+      { name: '本地新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml' },
+      { name: '大中華新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_greaterchina.xml' },
+      { name: '國際新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_cinternational.xml' },
+      { name: '財經新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_cfinance.xml' },
+      { name: '體育新聞', url: 'https://rthk.hk/rthk/news/rss/c_expressnews_csport.xml' }
+    ];
+
+    let currentFeedIndex = 0;
 
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
@@ -662,40 +671,34 @@
 
       track.style.animation = 'none';
 
-      // 支援多個新聞 RSS 來源 (若第一個失敗會自動嘗試下一個)
-      const rssFeeds = [
-        'https://news.mingpao.com/rss/ins/all.xml',
-        'https://rthk.hk/rthk/news/rss/c_expressnews.xml'
-      ];
+      // 每次輪流切換下一個新聞分類
+      const targetFeed = rthkFeeds[currentFeedIndex];
+      currentFeedIndex = (currentFeedIndex + 1) % rthkFeeds.length;
 
       let xmlString = null;
-      for (const feed of rssFeeds) {
-        try {
-          xmlString = await fetchRawRSS(feed);
-          if (xmlString) break;
-        } catch (e) {
-          console.warn('RSS 來源提取失敗:', feed);
-        }
+      try {
+        xmlString = await fetchRawRSS(targetFeed.url);
+      } catch (e) {
+        console.warn(`RTHK 來源 [${targetFeed.name}] 提取失敗`);
       }
 
       if (!xmlString) {
-        track.innerText = '即時新聞讀取中，將於 10 秒後重試...';
-        setTimeout(fetchAndStartNewsMarquee, 10000);
+        track.innerText = `[${targetFeed.name}] 讀取中，切換下一個類別...`;
+        setTimeout(fetchAndStartNewsMarquee, 3000);
         return;
       }
 
       try {
-        // 使用瀏覽器內置的 DOMParser 直接將 XML 字串解析為 DOM 物件
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
         const items = Array.from(xmlDoc.querySelectorAll('item'));
 
         if (items.length === 0) {
-          track.innerText = '暫無即時新聞內容';
+          track.innerText = `[${targetFeed.name}] 暫無即時新聞`;
+          setTimeout(fetchAndStartNewsMarquee, 5000);
           return;
         }
 
-        // 直接從 XML 的 <title> 標籤提取新聞標題
         const titles = [];
         items.forEach(item => {
           const titleEl = item.querySelector('title');
@@ -704,10 +707,10 @@
           }
         });
 
-        const formattedNews = titles.slice(0, 30).map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
-        track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
+        const categoryPrefix = `【${targetFeed.name}】`;
+        const formattedNews = titles.slice(0, 20).map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp;&nbsp;|&nbsp; ');
+        track.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;${categoryPrefix} &nbsp; ${formattedNews}&nbsp;&nbsp;&nbsp;&nbsp;`;
 
-        // 重新計算跑馬燈滾動長度與動畫速度
         const wrapperWidth = wrapper.offsetWidth;
         const trackWidth = track.scrollWidth;
         const totalDistance = wrapperWidth + trackWidth;
@@ -721,15 +724,15 @@
 
         track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
 
-        // 動畫結束後自動重新執行以循環更新
+        // 當這個分類跑馬燈播完一次後，自動輪播下一個新聞分類
         track.onanimationend = () => {
           fetchAndStartNewsMarquee();
         };
 
       } catch (e) {
         console.error('XML 解析錯誤:', e);
-        track.innerText = '即時新聞解析失敗，將於稍後重試';
-        setTimeout(fetchAndStartNewsMarquee, 10000);
+        track.innerText = `[${targetFeed.name}] 解析失敗，跳至下一個類別`;
+        setTimeout(fetchAndStartNewsMarquee, 4000);
       }
     }
 
