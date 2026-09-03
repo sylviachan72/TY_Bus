@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>0858儀表板</title>
+  <title>0912儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -645,7 +645,7 @@
     }
 
     /* ==========================================
-       4. 明報 RSS 即時新聞 (改用穩定的 rss2json API)
+       4. 明報 RSS 即時新聞 (加入 &count=100 取得完整新聞)
        ========================================== */
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
@@ -655,9 +655,9 @@
       track.style.animation = 'none';
 
       try {
-        // 使用專門解析 RSS 的免費服務，避開 CORS 問題
         const rssUrl = 'https://news.mingpao.com/rss/ins/all.xml';
-        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+        // 加上 &count=100 參數以取得最多 100 條新聞，突破預設的 10 條限制
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=100`;
         
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error('News API fetch error');
@@ -678,8 +678,8 @@
           
           if (title) {
             if (pubDateStr) {
-              // 將字串轉為日期物件，並相容 Safari (把 - 換成 /)
               const pubDate = new Date(pubDateStr.replace(/-/g, '/'));
+              // 透過程式過濾：只保留今天及昨天的所有新聞
               if (pubDate >= yesterday) {
                 filteredTitles.push(title.trim());
               }
@@ -721,7 +721,7 @@
       } catch (e) {
         console.error('News marquee error:', e);
         track.innerText = '即時新聞載入失敗，將於稍後重試';
-        setTimeout(fetchAndStartNewsMarquee, 10000); // 10秒後重試
+        setTimeout(fetchAndStartNewsMarquee, 10000);
       }
     }
 
