@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>0945儀表板</title>
+  <title>0159儀表板</title>
   <style>
     /* ==========================================
        全域樣式設定
@@ -323,10 +323,12 @@
       color: #ffffff;
       display: flex;
       align-items: center;
+      /* 開啟 GPU 硬件加速 */
       will-change: transform;
       transform: translateZ(0);
     }
 
+    /* 動態建立動畫位移量 */
     @keyframes marqueeNews {
       0% { transform: translateX(var(--start-x)); }
       100% { transform: translateX(var(--end-x)); }
@@ -341,7 +343,9 @@
     <!-- 左欄：巴士實時報站資訊 -->
     <div class="column left-column">
       <div class="update-header" id="bus-update-header">最後更新：--:--:--（每30秒自動刷新）</div>
-      <div class="bus-list" id="bus-list-container"></div>
+      <div class="bus-list" id="bus-list-container">
+        <!-- 由 JavaScript 自動動態生成巴士路線 -->
+      </div>
     </div>
 
     <!-- 右欄：時間與天氣資訊 -->
@@ -357,7 +361,7 @@
         <div class="date-display" id="date-display">----年--月--日 星期-</div>
       </div>
 
-      <!-- 天氣數據列 -->
+      <!-- 天氣數據列 (零縫隙) -->
       <div class="weather-data-box">
         <div class="weather-row-1">
           <img id="wx-icon" class="weather-icon" src="" alt="" style="display:none;">
@@ -459,6 +463,7 @@
             .slice(0, 3);
 
           const etaBox = document.getElementById(`eta-box-${route.id}`);
+
           if (validEtas.length === 0) {
             etaBox.innerHTML = `<span class="no-eta">暫無班次資料</span>`;
             continue;
@@ -468,11 +473,13 @@
             const etaDate = new Date(item.eta);
             const timeStr = formatTime12h(etaDate);
             const diffMins = Math.max(0, Math.floor((etaDate - now) / 60000));
+
             const minClass = diffMins < 10 ? 'eta-min-yellow' : 'eta-min-white';
             return `<span class="eta-group"><span class="eta-time">${timeStr}</span><span class="${minClass}">(${diffMins}分鐘)</span></span>`;
           });
 
           etaBox.innerHTML = etaHtmlParts.join('<span class="eta-sep">|</span>');
+
         } catch (err) {
           console.error(`Bus fetch error [${route.id}]:`, err);
           const etaBox = document.getElementById(`eta-box-${route.id}`);
@@ -512,16 +519,24 @@
       document.getElementById('date-display').innerText = `${year}年${month}月${day}日 ${weekStr}`;
     }
 
+
     /* ==========================================
        3. 天氣報告與警告邏輯
        ========================================== */
     const WARNING_CODE_MAP = {
-      'WFIREY': '黃色火災危險警告', 'WFIRER': '紅色火災危險警告',
-      'WRAINA': '黃色暴雨警告信號', 'WRAINR': '紅色暴雨警告信號', 'WRAINB': '黑色暴雨警告信號',
-      'TC1': '一號戒備信號', 'TC3': '三號強風信號',
-      'TC8NE': '八號東北烈風或暴風信號', 'TC8SE': '八號東南烈風或暴風信號',
-      'TC8SW': '八號西南烈風或暴風信號', 'TC8NW': '八號西北烈風或暴風信號',
-      'TC9': '九號烈風或暴風風力增強信號', 'TC10': '十號颶風信號',
+      'WFIREY': '黃色火災危險警告',
+      'WFIRER': '紅色火災危險警告',
+      'WRAINA': '黃色暴雨警告信號',
+      'WRAINR': '紅色暴雨警告信號',
+      'WRAINB': '黑色暴雨警告信號',
+      'TC1': '一號戒備信號',
+      'TC3': '三號強風信號',
+      'TC8NE': '八號東北烈風或暴風信號',
+      'TC8SE': '八號東南烈風或暴風信號',
+      'TC8SW': '八號西南烈風或暴風信號',
+      'TC8NW': '八號西北烈風或暴風信號',
+      'TC9': '九號烈風或暴風風力增強信號',
+      'TC10': '十號颶風信號',
       'CANCEL': '取消所有熱帶氣旋警告信號'
     };
 
@@ -532,15 +547,18 @@
       try {
         const resRhr = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
         const dataRhr = await resRhr.json();
+
         if (dataRhr.humidity && dataRhr.humidity.data.length > 0) {
           document.getElementById('humidity').innerText = `💧${dataRhr.humidity.data[0].value}%`;
         }
+
         if (dataRhr.temperature && dataRhr.temperature.data) {
           const tsingYiData = dataRhr.temperature.data.find(t => t.place === '青衣') || dataRhr.temperature.data[0];
           if (tsingYiData) {
             document.getElementById('tsing-yi-temp').innerText = `${tsingYiData.value}°C(青衣)`;
           }
         }
+
         if (dataRhr.icon && dataRhr.icon.length > 0) {
           const iconCode = dataRhr.icon[0];
           const iconImg = document.getElementById('wx-icon');
@@ -568,15 +586,19 @@
         const dataWarn = await resWarn.json();
         const warnContainer = document.getElementById('warning-container');
         warnContainer.innerHTML = '';
+
         let activeWarnings = [];
         if (dataWarn && Object.keys(dataWarn).length > 0) {
           for (const key in dataWarn) {
             const warnObj = dataWarn[key];
             const code = warnObj.code || key;
             const name = WARNING_CODE_MAP[code] || warnObj.name || code;
-            if (code !== 'CANCEL') activeWarnings.push(name);
+            if (code !== 'CANCEL') {
+              activeWarnings.push(name);
+            }
           }
         }
+
         if (activeWarnings.length > 0) {
           activeWarnings.forEach(wName => {
             const badge = document.createElement('div');
@@ -588,6 +610,7 @@
           warnContainer.innerHTML = `<div class="warning-none">現時沒有生效的警告</div>`;
         }
       } catch (e) {
+        console.error('Error fetching warnsum:', e);
         document.getElementById('warning-container').innerHTML = `<div class="warning-none">現時沒有生效的警告</div>`;
       }
 
@@ -596,13 +619,17 @@
         const dataSwt = await resSwt.json();
         const swtContainer = document.getElementById('swt-container');
         swtContainer.innerHTML = '';
+
         if (dataSwt && dataSwt.swt && dataSwt.swt.length > 0) {
           const tips = dataSwt.swt;
           let tipTexts = tips.map((t, idx) => `${idx + 1}. ${t.desc}`);
+          
           const fullContent = tipTexts.join('<br>');
           const wrapper = document.createElement('div');
+          
           if (tips.length >= 2 || fullContent.length > 80) {
             wrapper.className = 'swt-scroll-content swt-animated';
+            // 加入結尾的 <br><br>，讓兩半部高度完美對齊，解決跳動問題
             wrapper.innerHTML = `${fullContent}<br><br>${fullContent}<br><br>`;
           } else {
             wrapper.className = 'swt-scroll-content';
@@ -613,25 +640,24 @@
           swtContainer.innerHTML = `<div class="swt-none">現時沒有特別天氣提示</div>`;
         }
       } catch (e) {
+        console.error('Error fetching swt:', e);
         document.getElementById('swt-container').innerHTML = `<div class="swt-none">現時沒有特別天氣提示</div>`;
       }
     }
 
     /* ==========================================
-       4. 明報 RSS 即時新聞 (抓取今天及昨天所有新聞)
+       4. 明報 RSS 即時新聞 (CSS 硬件加速動畫)
        ========================================== */
     async function fetchAndStartNewsMarquee() {
       const track = document.getElementById('news-track');
       const wrapper = document.getElementById('news-wrapper');
 
+      // 暫停動畫以重新配置
       track.style.animation = 'none';
 
       try {
-        // 使用多重備用機制的 CORS 代理，確保順利進入
-        const targetUrl = 'https://news.mingpao.com/rss/ins/all.xml';
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
-        
-        const res = await fetch(proxyUrl);
+        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
+        const res = await fetch(rssUrl);
         if (!res.ok) throw new Error('News RSS fetch error');
         
         const xmlText = await res.text();
@@ -639,11 +665,10 @@
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         const items = Array.from(xmlDoc.querySelectorAll('item'));
 
-        // 設定時間範圍：從「昨天凌晨 00:00」開始至今的所有新聞
         const now = new Date();
-        const startOfYesterday = new Date(now);
-        startOfYesterday.setDate(now.getDate() - 1);
-        startOfYesterday.setHours(0, 0, 0, 0);
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
 
         const filteredTitles = [];
         items.forEach(item => {
@@ -652,8 +677,7 @@
           if (title) {
             if (pubDateStr) {
               const pubDate = new Date(pubDateStr);
-              // 只要發布時間大於或等於昨天凌晨 00:00，就全部收錄
-              if (pubDate >= startOfYesterday) {
+              if (pubDate >= yesterday) {
                 filteredTitles.push(title.trim());
               }
             } else {
@@ -662,40 +686,38 @@
           }
         });
 
-        // 如果找不到昨天到今天的新聞，則退而求其次抓取 RSS 內的所有新聞
-        let finalNewsList = filteredTitles;
-        if (finalNewsList.length === 0 && items.length > 0) {
-          finalNewsList = items.map(i => i.querySelector('title')?.textContent.trim()).filter(Boolean);
-        }
-
-        if (finalNewsList.length === 0) {
+        if (filteredTitles.length === 0) {
           track.innerText = '暫無即時新聞內容';
           return;
         }
 
-        const formattedNews = finalNewsList.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
+        const formattedNews = filteredTitles.map((t, idx) => `${idx + 1}. ${t}`).join(' &nbsp;|&nbsp; ');
         track.innerHTML = `&nbsp;&nbsp;${formattedNews}&nbsp;&nbsp;`;
 
-        // 計算動畫長度與速度
+        // 計算動畫需要的參數 (透過 CSS 變數傳入動畫)
         const wrapperWidth = wrapper.offsetWidth;
         const trackWidth = track.scrollWidth;
         const totalDistance = wrapperWidth + trackWidth;
-        const speedPxPerSec = 80; // 每秒移動 80 像素，保持穩定滑動速度
+        const speedPxPerSec = 80;
         const durationSec = totalDistance / speedPxPerSec;
 
         track.style.setProperty('--start-x', `${wrapperWidth}px`);
         track.style.setProperty('--end-x', `-${trackWidth}px`);
 
-        void track.offsetWidth; // 重置動畫觸發
+        // 強制瀏覽器重繪 (Reflow) 以重啟動畫
+        void track.offsetWidth;
+
+        // 綁定 CSS 動畫
         track.style.animation = `marqueeNews ${durationSec}s linear forwards`;
 
+        // 監聽動畫結束事件，結束後重新抓取並播放
         track.onanimationend = () => {
           fetchAndStartNewsMarquee();
         };
 
       } catch (e) {
         console.error('News marquee error:', e);
-        track.innerText = '即時新聞載入中，或網絡連線嘗試重新整理...';
+        track.innerText = '即時新聞載入失敗，將於稍後重試';
         setTimeout(fetchAndStartNewsMarquee, 10000);
       }
     }
