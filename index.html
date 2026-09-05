@@ -656,7 +656,8 @@
       track.style.animation = 'none';
 
       try {
-        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://news.mingpao.com/rss/ins/all.xml');
+        const rssUrl = 'https://corsproxy.io/?' + encodeURIComponent('⁠https://rthk.hk/rthk/news/rss/c_expressnews_el.xml
+');
         const res = await fetch(rssUrl);
         if (!res.ok) throw new Error('News RSS fetch error');
         
